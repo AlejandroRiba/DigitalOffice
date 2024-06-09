@@ -1,0 +1,72 @@
+<div>
+    <style>
+        /* Default height for small devices */
+        #intro-example {
+            height: 400px;
+        }
+
+        /* Height for devices larger than 992px */
+        @media (min-width: 992px) {
+            #intro-example {
+                height: 600px;
+            }
+        }
+    </style>
+        <!-- Background image -->
+        <div
+            id="intro-example"
+            class="p-5 text-center bg-image"
+            style="background-image: url('/img/fondo.jpg'); background-size: cover; height: 100vh; background-repeat: no-repeat; background-position:center;">
+            <div class="mask" style="background-color: rgba(0, 0, 0, 0.5); padding: 10vh; border-radius: 10px;">
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <div class="text-white">
+                        <!-- Pantalla grande -->
+                        <h1 class="mb-3 d-none d-md-block">WELCOME</h1> 
+                        <!-- Pantalla chica -->
+                        <h3 class="mb-3 d-block d-md-none">WELCOME</h3>
+                        <div class="d-none d-md-block">
+                            <br><br>
+                        </div>
+                        <!-- Pantalla grande -->
+                        <h5 class="mb-4 d-none d-md-block">Generate official minutes with secure signatures from all participants, sign important memorandums, and manage confidential memos with encrypted access for authorized personnel only. Our system enhances efficiency and provides peace of mind. Revolutionize your document management process today!</h5>
+                        <!-- Pantalla chica -->
+                        <p class="mb-4 d-block d-md-none" style="font-size: 16px">Generate official minutes with secure signatures from all participants, sign important memorandums, and manage confidential memos with encrypted access for authorized personnel only. Our system enhances efficiency and provides peace of mind. Revolutionize your document management process today!</p>
+                        <div class="d-none d-md-block">
+                            <br><br>
+                        </div>
+                        <!-- Botones en la misma línea -->
+                        <div class="d-flex justify-content-center">
+                            <!-- Pantalla grande -->
+                            <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
+                                href="/login"
+                                role="button"
+                                rel="nofollow"
+                            >Registered employee</a>
+                            <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
+                                href="/register"
+                                role="button"
+                            >New employee</a>
+                            
+                            <!-- Pantalla chica -->
+                            <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-sm m-2 d-block d-md-none"
+                                href="/login"
+                                role="button"
+                                rel="nofollow"
+                            >Registered employee</a>
+                            <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-sm m-2 d-block d-md-none"
+                                href="/register"
+                                role="button"
+                            >New employee</a>
+                     </div>
+             </div>
+         </div>
+    </div>
+</div>
