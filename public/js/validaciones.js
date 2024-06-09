@@ -16,7 +16,7 @@ function validarUser(input) {
     var valCorreo = /^(?:[^\s@]+@[^\s@]+\.[^\s@]{2,})|(?:[A-Za-z]{4}\d{6})$/;
     var error = document.getElementById('usrError');
     if (!valCorreo.test(input.value)) {
-      error.textContent = 'Employee ID or email are invalid.';
+      error.textContent = '* Employee ID or email are invalid.';
       input.style.borderColor = 'red'; // Establecer el borde rojo
       input.style.borderWidth = '2px'; // Establecer el ancho del borde
       return false;
@@ -38,7 +38,7 @@ function validarMatricula(input) {
     var valMat = /^[A-Za-z]{4}\d{6}$/;
     var error = document.getElementById('matriculaError');
     if (!valMat.test(input.value)) {
-      error.textContent = 'Invalid Employee ID.';
+      error.textContent = '* Invalid Employee ID.';
       return false;
     } else {
       error.textContent = '';
@@ -51,7 +51,7 @@ function validarMatricula(input) {
     var valCorreo = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     var error = document.getElementById('emailError');
     if (!valCorreo.test(input.value)) {
-      error.textContent = 'Invalid Email.';
+      error.textContent = '* Invalid Email.';
       input.style.borderColor = 'red'; // Establecer el borde rojo
       input.style.borderWidth = '2px'; // Establecer el ancho del borde
       return false;
