@@ -17,17 +17,21 @@
        <nav class="nav">
             <ul>
               {{#if name}}
-                <li><a class="btn btn-outline-light btn-lg m-2"
+                <li><a class="btn btn-lg m-2"
+                          style="border-color: red; border-width: 2px;"
                           href="/logout"
                           role="button"
                           rel="nofollow"
                           data-mdb-ripple-init>Logout</a></li>
+                <li> </li>
               {{else}}
                    <li><a class="btn btn-outline-light btn-lg m-2"
+                          style="border-color: rgba(133, 127, 127, 0.701); border-width: 2px;"
                           href="/login"
                           role="button"
                           rel="nofollow">Sign in</a></li>
                     <li><a class="btn btn-outline-light btn-lg m-2"
+                          style="border-width: 2px;"
                           href="/register"
                           role="button"
                           data-mdb-ripple-init>Sign up</a></li>

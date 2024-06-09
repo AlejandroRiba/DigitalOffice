@@ -4,7 +4,7 @@ function login(req, res) {
     if(req.session.loggedin != true){
         res.render('login/index');
     } else{
-        res.redirect('/');
+        res.redirect('/principal');
     } 
 }
 
@@ -16,9 +16,9 @@ function auth(req, res){
               const user = datos[0];
               if(comparePasswords(data.contras, user.password)){
                 req.session.loggedin = true;
-                req.session.name = user.matricula;
+                req.session.name = user.nombre;
 
-                res.redirect('/');
+                res.redirect('/principal');
 
               } else{
                 res.render('login/index', {error: '* ERROR. Incorrect password.'});
@@ -34,7 +34,7 @@ function register(req, res) {
     if(req.session.loggedin != true){
         res.render('login/register');
     } else{
-        res.redirect('/');
+        res.redirect('/principal');
     } 
 }
 
@@ -89,8 +89,8 @@ function storeUser(req, res) {
                             return;
                         }
                         req.session.loggedin = true;
-                        req.session.name = userData.matricula;
-                        res.redirect('/');
+                        req.session.name = userData.nombre;
+                        res.redirect('/principal');
                     });
                 });
             }

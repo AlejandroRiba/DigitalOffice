@@ -4,9 +4,9 @@ const myConnection = require('express-myconnection');
 const mysql = require('mysql');
 const session = require('express-session');
 const bodyParser = require('body-parser');
-const path = require('path');
 
 const loginRoutes = require('./routes/login');
+const princRoutes = require('./routes/principal');
 
 const app = express();
 app.set('port', 4000);
@@ -42,12 +42,13 @@ app.listen(app.get('port'), () => {
 });
 
 app.use('/', loginRoutes);
+app.use('/', princRoutes);
 
-app.get('/', (req, res) => {
+app.get('/', (req, res) => { //ruta raíz
     if(req.session.loggedin == true){
-        res.render('home', {name: req.session.name});
+        res.render('principal/index', {name: req.session.name});
     } else{
-        res.redirect('/login');
+        res.render('home');
     }
 });
 
