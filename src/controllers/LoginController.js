@@ -50,17 +50,32 @@ function hashPassword(password) {
     return hash;
 }
 
+
+function generateUniqueKeyPair() {
+    const { publicKey, privateKey} = crypto.generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+    });
+
+    return { publicKey, privateKey };
+}
+
 function storeUser(req, res) {
     const data = req.body;
     const hashedPassword = hashPassword(data.contras);
+    const hashedUser = hashPassword(data.matricula);
     data.contras = hashedPassword;
+    const {publicKey, privateKey} = generateUniqueKeyPair();
+    console.log(privateKey);
     const userData = {
         matricula: data.matricula,
         password: data.contras,
         nombre: data.fsname,
         apellidos: data.lsname,
         email: data.email,
-        cargo: data.cargo
+        cargo: data.cargo,
+        firma: publicKey
     };
 
     req.getConnection((err, conn) => {
@@ -73,14 +88,15 @@ function storeUser(req, res) {
                         console.error('Database connection error:', err);
                         return;
                     }
-                    const query = 'INSERT INTO registros (matricula, password, nombre, apellidos, email, cargo) VALUES (?, ?, ?, ?, ?, ?)';
+                    const query = 'INSERT INTO registros (matricula, password, nombre, apellidos, email, cargo, firma) VALUES (?, ?, ?, ?, ?, ?, ?)';
                     const values = [
                         userData.matricula,
                         userData.password,
                         userData.nombre,
                         userData.apellidos,
                         userData.email,
-                        userData.cargo
+                        userData.cargo,
+                        userData.firma
                     ];
 
                     conn.query(query, values, (err, result) => {
@@ -88,6 +104,15 @@ function storeUser(req, res) {
                             console.error('Query error:', err);
                             return;
                         }
+
+                        const query1 = 'INSERT INTO private (usuario, password, `key`) VALUES (?, ?, ?)';
+                        const values2 = [hashedUser, userData.password, privateKey]
+                        conn.query(query1, values2, (err, result) => {
+                            if (err) {
+                                console.error('Query error:', err);
+                                return;
+                            }
+                        });
                         req.session.loggedin = true;
                         req.session.name = userData.nombre;
                         res.redirect('/principal');

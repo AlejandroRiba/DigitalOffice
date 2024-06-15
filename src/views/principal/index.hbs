@@ -1,72 +1,36 @@
 <div>
-    <style>
-        /* Default height for small devices */
-        #intro-example {
-            height: 400px;
-        }
-
-        /* Height for devices larger than 992px */
-        @media (min-width: 992px) {
-            #intro-example {
-                height: 600px;
-            }
-        }
-    </style>
-        <!-- Background image -->
-        <div
-            id="intro-example"
-            class="p-5 text-center bg-image"
-            style="background:rgb(231, 231, 231); background-size: cover; height: 100vh; background-repeat: no-repeat; background-position:center;">
-            <div class="mask" style="background-color: rgba(0, 0, 0, 0.5); padding: 10vh; border-radius: 10px;">
-                <div class="d-flex justify-content-center align-items-center h-100">
-                    <div class="text-white">
-                        <!-- Pantalla grande -->
-                        <h1 class="mb-3 d-none d-md-block" style="text-transform: uppercase;">WELCOME BACK {{name}}</h1> 
-                        <!-- Pantalla chica -->
-                        <h3 class="mb-3 d-block d-md-none" style="text-transform: uppercase;">WELCOME BACK {{name}}</h3>
-                        <div class="d-none d-md-block">
-                            <br><br>
+    <section style="padding: 10vh">
+        <div class="container-fluid h-custom">
+            <div class="row d-flex justify-content-center align-items-center h-100">
+                <div class="col-md-12 col-lg-8 col-xl-6 offset-xl-1">
+                    <form method="POST" action="">
+                        <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                         </div>
-                        <!-- Pantalla grande -->
-                        <h5 class="mb-4 d-none d-md-block">Generate official minutes with secure signatures from all participants, sign important memorandums, and manage confidential memos with encrypted access for authorized personnel only. Our system enhances efficiency and provides peace of mind. Revolutionize your document management process today!</h5>
-                        <!-- Pantalla chica -->
-                        <p class="mb-4 d-block d-md-none" style="font-size: 16px">Generate official minutes with secure signatures from all participants, sign important memorandums, and manage confidential memos with encrypted access for authorized personnel only. Our system enhances efficiency and provides peace of mind. Revolutionize your document management process today!</p>
-                        <div class="d-none d-md-block">
-                            <br><br>
+            
+                        <div class="divider d-flex align-items-center my-4">
+                            <p class="text-center fw-bold mx-3 mb-0"></p>
                         </div>
-                        <!-- Botones en la misma línea -->
-                        <div class="d-flex justify-content-center">
-                            <!-- Pantalla grande -->
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
-                                href="#"
-                                role="button"
-                                rel="nofollow"
-                            >Registered employee</a>
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
-                                href="#"
-                                role="button"
-                            >New employee</a>
-                            
-                            <!-- Pantalla chica -->
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-sm m-2 d-block d-md-none"
-                                href="#"
-                                role="button"
-                                rel="nofollow"
-                            >Registered employee</a>
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-sm m-2 d-block d-md-none"
-                                href="#"
-                                role="button"
-                            >New employee</a>
-                     </div>
-             </div>
-         </div>
-    </div>
+    
+                        <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="text" id="prueba" name="prueba" class="form-control form-control-lg"
+                                placeholder="texto de prueba" required />
+                            <label class="form-label" for="prueba">Email or employee ID</label><br>
+                        </div>
+            
+                        <div data-mdb-input-init class="form-outline mb-3">
+                            <input type="text" id="pub" name="pub" class="form-control form-control-lg"
+                                value="{{signed}}" autocomplete="off"/>
+                            <label class="form-label" for="pub">Signed Document</label>
+                        </div>
+            
+                        <div class="text-center text-lg-start mt-4 pt-2">
+                            <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg"
+                                style="padding-left: 2.5rem; padding-right: 2.5rem; background: #06547E;">Generar llave</button>
+                        </div>
+    
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
