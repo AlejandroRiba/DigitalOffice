@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Directorio donde se guardarán los archivos subidos
-const uploadDir = path.join(__dirname, '/archivos');
+const uploadDir = path.join(__dirname, '../archivos');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
@@ -14,7 +14,7 @@ if (!fs.existsSync(uploadDir)) {
 const storage = multer.diskStorage({
     destination: uploadDir,
     filename: function (req, file, cb) {
-        cb(null, file.fieldname + path.extname(file.originalname));
+        cb(null, file.originalname);
     }
 });
 
@@ -24,6 +24,8 @@ function principal(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
+        const uploadedFileName = req.session.uploadedFileName; // Reemplaza con tu lógica para obtener el nombre del archivo
+        res.render('principal/index', { name: req.session.name, uploadedFileName });
         res.render('principal/index', {name: req.session.name}); //si existe la sesión
     } 
 }
@@ -39,9 +41,10 @@ function uploadf(req, res){
 function uploadFile(req, res){
     upload(req, res, function (err) {
         if (err) {
-            return res.status(500).json({ success: false, message: 'Error al subir el archivo', error: err.message });
+            console.log('Error al subir el archivo');
         }
-        res.status(200).json({ success: true, message: 'Archivo subido exitosamente' });
+        req.session.uploadedFileName = req.file.originalname;
+        res.redirect('/principal');
     });
 }
 

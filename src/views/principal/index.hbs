@@ -24,6 +24,12 @@
                     <form method="POST" action="">
                         <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                             <p class="lead fw-normal mb-0 me-3">Sign your document</p>
+                            {{#if uploadedFileName}}
+                                <p>Documento subido: {{ uploadedFileName }}</p>
+                                <a href="/download">Descargar documento</a>
+                            {{else}}
+                                <p>No se ha subido ningún documento aún.</p>
+                            {{/if}}
                         </div>
                 
                         <div class="divider d-flex align-items-center my-4">

@@ -4,7 +4,6 @@ const myConnection = require('express-myconnection');
 const mysql = require('mysql');
 const session = require('express-session');
 const bodyParser = require('body-parser');
-const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
@@ -19,16 +18,6 @@ const uploadDir = path.join(__dirname, '/archivos');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
-
-const storage = multer.diskStorage({
-    destination: uploadDir,
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-    }
-});
-
-const upload = multer({ storage });
-
 
 app.set('views', __dirname + '/views');
 app.engine('.hbs', engine({
@@ -54,14 +43,6 @@ app.use(session({
     resave: true,
     saveUninitialized: true
 }));
-
-app.post('/cargar', upload.single('file'), (req, res) => {
-    const archivo = req.file;
-    if (!archivo) {
-      return res.status(400).json({ mensaje: 'No se recibió ningún archivo' });
-    }
-    res.json({ mensaje: 'Archivo recibido con éxito', archivo });
-});
 
 app.listen(app.get('port'), () => {
     console.log('Servidor iniciado en http://localhost:'+app.get('port'));
