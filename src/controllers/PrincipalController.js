@@ -72,6 +72,28 @@ function uploadf(req, res){
     } 
 }
 
+function uploadm(req, res){
+    if(req.session.loggedin != true){
+        res.redirect('/login');
+    } else{
+        const matricula = req.session.matricula;
+        req.getConnection((err, conn) => {
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                return res.status(500).send('Database connection error');
+            }
+    
+            conn.query('SELECT matricula, nombre FROM registros WHERE matricula != ?',[matricula], (err, users) => {
+                if (err) {
+                    console.error('Error fetching users from the database:', err);
+                }
+    
+                res.render('principal/subirmemo', {name: req.session.name, users , matricula: req.session.matricula});
+            });
+        });
+    } 
+}
+
 function formatNames(names) {
     if (typeof names === 'string') {
         // Convertir la cadena JSON a un arreglo si es necesario
@@ -84,7 +106,7 @@ function formatNames(names) {
     return formattedString;
 }
 
-function uploadFile(req, res){
+function uploadMinut(req, res){
     upload(req, res, function (err) {
         if (err) {
         console.log('Error al subir el archivo');
@@ -96,10 +118,39 @@ function uploadFile(req, res){
             req.file.originalname,
             data.source,
             firmas,
-            'N/A'
+            'N/A',
+            'Min'
         ];
         req.getConnection((err, conn) => {
-            conn.query('INSERT INTO archivos (name, envia, firmas, recibe) VALUES (?, ?, ?, ?)', values, (err, result) => {
+            conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo) VALUES (?, ?, ?, ?, ?)', values, (err, result) => {
+                if (err) {
+                    console.error('Query error:', err);
+                    return;
+                    }
+                    req.session.uploadedFileName = req.file.originalname;
+                    res.redirect('/principal');
+            });
+        });
+    });
+}
+
+function uploadMemo(req, res){
+    upload(req, res, function (err) {
+        if (err) {
+        console.log('Error al subir el archivo');
+        }
+        const data = req.body;
+        const firmasreq = data.users;
+        const firmas = formatNames(firmasreq);
+        const values = [
+            req.file.originalname,
+            data.source,
+            firmas,
+            data.destiny,
+            'Memo'
+        ];
+        req.getConnection((err, conn) => {
+            conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo) VALUES (?, ?, ?, ?, ?)', values, (err, result) => {
                 if (err) {
                     console.error('Query error:', err);
                     return;
@@ -192,6 +243,8 @@ module.exports = {
     principal,
     generatesignature,
     uploadf,
-    uploadFile,
-    firmar
+    uploadMinut,
+    firmar,
+    uploadMemo,
+    uploadm
 }

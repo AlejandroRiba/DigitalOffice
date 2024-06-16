@@ -2,27 +2,12 @@
     <div class="row h-100">
         <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4">
             <div class="d-flex flex-column align-items-start">
-                <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
-                    <p class="lead fw-normal mb-0 me-3">Menu</p>
-                </div>
-                <div class="divider d-flex align-items-center my-4">
-                    <p class="text-center fw-bold mx-3 mb-0"></p>
-                </div>
-                <a class="btn btn-primary btn-lg" href="/uploadf" role="button" rel="nofollow"><p>Subir archivo </p></a>
-                <br>
-                <a class="btn btn-primary btn-lg" href="/principal" role="button" rel="nofollow"><p>* Firmar </p></a>
             </div>
         </div>
         <div class="col-md-8 col-lg-8 col-xl-8 form-section">
             <form method="POST" action="">
                 <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                     <p class="lead fw-normal mb-0 me-3">Sign your document</p>
-                    {{#if uploadedFileName}}
-                        <p>Documento subido: {{ uploadedFileName }}</p>
-                        <a href="/download">Descargar documento</a>
-                    {{else}}
-                        <p>No se ha subido ningún documento aún.</p>
-                    {{/if}}
                 </div>
         
                 <div class="divider d-flex align-items-center my-4">
@@ -49,6 +34,12 @@
                     <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem; background: #06547E;">Generar llave</button>
                 </div>
             </form>
+            {{#if uploadedFileName}}
+                        <p>Documento subido: {{ uploadedFileName }}</p>
+                        <a href="/download">Descargar documento</a>
+                    {{else}}
+                        <p>No se ha subido ningún documento aún.</p>
+                    {{/if}}
         </div>
     </div>
 </div>

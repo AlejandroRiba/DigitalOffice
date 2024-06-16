@@ -7,7 +7,9 @@ const router = express.Router();
 router.get('/principal', PrincipalController.principal);
 router.post('/principal', PrincipalController.generatesignature);
 router.get('/uploadf', PrincipalController.uploadf);
-router.post('/uploadf', PrincipalController.uploadFile);
+router.post('/uploadf', PrincipalController.uploadMinut);
+router.get('/uploadm', PrincipalController.uploadm);
+router.post('/uploadm', PrincipalController.uploadMemo);
 router.get('/firmar', PrincipalController.firmar);
 
 router.get('/download', function(req, res) {
