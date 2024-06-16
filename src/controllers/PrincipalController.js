@@ -26,7 +26,6 @@ function principal(req, res){
     } else{
         const uploadedFileName = req.session.uploadedFileName; // Reemplaza con tu lógica para obtener el nombre del archivo
         res.render('principal/index', { name: req.session.name, uploadedFileName });
-        res.render('principal/index', {name: req.session.name}); //si existe la sesión
     } 
 }
 
