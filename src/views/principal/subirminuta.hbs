@@ -4,24 +4,29 @@
             <div class="row h-100">
                 <div class="col-md-3 col-lg-3 col-xl-2 menu">
                     <div class="d-flex flex-column align-items-start">
-                        <p class="lead fw-normal mb-0">Menú</p>
+                        <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
+                            <p class="lead fw-normal mb-0 me-3">Menu</p>
+                        </div>
+                        <div class="divider d-flex align-items-center my-4">
+                            <p class="text-center fw-bold mx-3 mb-0"></p>
+                        </div>
                         <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2"
+                                class="btn btn-primary btn-lg"
                                 href="/uploadf"
                                 role="button"
                                 rel="nofollow"
                             >Subir archivo</a>
+                        <br>
                         <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2"
-                                href="/index"
+                                class="btn btn-primary btn-lg"
+                                href="/principal"
                                 role="button"
+                                rel="nofollow"
                             >Firmar archivo</a>
                     </div>
                 </div>
                 <div class="col-md-9 col-lg-9 col-xl-10 form-section">
-                    <form method="POST" action="" enctype="multipart/form-data">
+                    <form method="POST" action="" enctype="multipart/form-data" id="formularioArch">
                         <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                             <p class="lead fw-normal mb-0 me-3">Upload your document</p>
                         </div>
@@ -34,13 +39,38 @@
                             <input type="file" id="file" name="file" class="form-control form-control-lg" required/>
                             <label class="form-label" for="file">Document Text</label><br>
                         </div>
-        
+                        {{#if error}}
+                            <p class="small fw-bold mt-2 pt-1 mb-0" style="color: red">{{error}}</p>
+                        {{/if}} 
+
+                        <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="text" id="source" name="source" class="form-control form-control-lg" placeholder="quien envia" required oninput="validarMatricula(this)"/>
+                            <label class="form-label" for="source">Employee ID</label><br>
+                            <small id="matriculaError" class="text-danger"></small>
+                        </div>
+                        <label class="form-label" for="users">Quién firma?</label><br>
+                        <div class="form-check form-check-inline">
+                            <input style="opacity: 0.5; cursor: not-allowed;" class="form-check-input" type="checkbox" id="user_{{matricula}}" name="users" value="{{matricula}}" checked disabled>
+                            <label for="user_{{matricula}}">{{matricula}} - {{name}}</label>
+                        </div>
+                        {{#each users}}
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="user_{{this.matricula}}" name="users" value="{{this.matricula}}">
+                                    <label for="user_{{this.matricula}}">{{this.matricula}} - {{this.nombre}}</label>
+                                </div>
+                        {{/each}}
 
                         <div class="text-center text-lg-start mt-4 pt-2">
                             <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg"
                                 style="padding-left: 2.5rem; padding-right: 2.5rem; background: #06547E;">Subir minuta</button>
                         </div>
                     </form>
+                    <script>
+                        document.getElementById('formularioArch').addEventListener('submit', function(event) {
+                            // Antes de enviar el formulario, eliminar el atributo 'disabled' del checkbox
+                            document.getElementById('user_{{matricula}}').removeAttribute('disabled');
+                        });
+                    </script>
                 </div>
             </div>
         </div>

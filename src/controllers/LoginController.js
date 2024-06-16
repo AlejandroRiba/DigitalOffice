@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { use } = require('../routes/principal');
 
 function login(req, res) {
     if(req.session.loggedin != true){
@@ -17,6 +18,7 @@ function auth(req, res){
               if(comparePasswords(data.contras, user.password)){
                 req.session.loggedin = true;
                 req.session.name = user.nombre;
+                req.session.matricula = user.matricula;
 
                 res.redirect('/principal');
 
@@ -125,6 +127,7 @@ function storeUser(req, res) {
                         });
                         req.session.loggedin = true;
                         req.session.name = userData.nombre;
+                        req.session.matricula = userData.matricula;
                         res.redirect('/principal');
                     });
                 });

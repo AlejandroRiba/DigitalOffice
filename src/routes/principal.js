@@ -8,6 +8,7 @@ router.get('/principal', PrincipalController.principal);
 router.post('/principal', PrincipalController.generatesignature);
 router.get('/uploadf', PrincipalController.uploadf);
 router.post('/uploadf', PrincipalController.uploadFile);
+router.get('/firmar', PrincipalController.firmar);
 
 router.get('/download', function(req, res) {
     const uploadedFileName = req.session.uploadedFileName; // Obtén el nombre del archivo de la sesión

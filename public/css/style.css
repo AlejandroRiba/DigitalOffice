@@ -73,3 +73,77 @@ input:invalid:focus {
 input:valid {
     border-color: initial; /* Restablece el color del borde a su valor predeterminado para campos válidos */
 }
+
+.dropdown{
+   display: inline-block;
+   position: relative;
+   vertical-align: middle;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    width: 200px;
+    top: 100%; /* Coloca el contenido debajo del ícono */
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+.dropdown:hover .dropdown-content{
+    display: block;
+}
+
+.dropdown-content a{
+    display: block;
+    color: #eee;
+    background-color: #06547E;
+    padding: 10px;
+    text-decoration: none;
+}
+
+.dropdown-content a:hover{
+    color: #ffffff;
+    background-color: rgb(7, 40, 66);
+}
+
+.notification-icon {
+    position: relative;
+    vertical-align: middle;
+    display: inline-flex;/* Utiliza flexbox para alinear verticalmente */
+    align-items: center; /* Centra verticalmente */
+    justify-content: center; /* Centra horizontalmente */
+    height: 100%; /* Ajusta la altura del enlace para centrar */
+    padding: 0 10px; /* Ajusta el espacio interno del enlace */
+    text-decoration: none;
+    color: #000000; /* Color del texto */
+}
+
+.notification-icon i {
+    font-size: 24px; /* Tamaño del ícono */
+}
+
+.notification-content {
+    display: none;
+    position: absolute;
+    width: 280px;
+    top: 100%; /* Coloca el contenido debajo del ícono */
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+}
+
+.notification-icon:hover .notification-content{
+    display: block;
+}
+
+.notification-content a{
+    display: block;
+    color: #141313;
+    background-color: #f8f8f8;
+    padding: 10px;
+    text-decoration: none;
+}
+
+.notification-content a:hover{
+    color: #eee;
+    background-color: rgb(7, 40, 66);
+}

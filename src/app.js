@@ -48,6 +48,14 @@ app.listen(app.get('port'), () => {
     console.log('Servidor iniciado en http://localhost:'+app.get('port'));
 });
 
+app.get('/', (req, res) => { //ruta raíz
+    if(req.session.loggedin == true){
+        res.render('principal/index', {name: req.session.name});
+    } else{
+        res.render('home');
+    }
+});
+
 app.use('/', loginRoutes);
 app.use('/', princRoutes);
 

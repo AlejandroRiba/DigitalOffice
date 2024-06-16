@@ -24,8 +24,29 @@ function principal(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
+        req.getConnection((err, conn) => {
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                return res.status(500).send('Database connection error');
+            }
+            //aquí habría que hacer una de las comprobaciones de si ya firmó
+            conn.query('SELECT name FROM registros WHERE', (err, users) => {
+                if (err) {
+                    console.error('Error fetching users from the database:', err);
+                }
+    
+                res.render('principal/index', {name: req.session.name, users , matricula: req.session.matricula});
+            });
+        });
+    } 
+}
+
+function firmar(req, res){
+    if(req.session.loggedin != true){
+        res.redirect('/login');
+    } else{
         const uploadedFileName = req.session.uploadedFileName; // Reemplaza con tu lógica para obtener el nombre del archivo
-        res.render('principal/index', { name: req.session.name, uploadedFileName });
+        res.render('principal/firmar', { name: req.session.name, uploadedFileName });
     } 
 }
 
@@ -33,17 +54,60 @@ function uploadf(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        res.render('principal/subirminuta', {name: req.session.name}); //si existe la sesión
+        const matricula = req.session.matricula;
+        req.getConnection((err, conn) => {
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                return res.status(500).send('Database connection error');
+            }
+    
+            conn.query('SELECT matricula, nombre FROM registros WHERE matricula != ?',[matricula], (err, users) => {
+                if (err) {
+                    console.error('Error fetching users from the database:', err);
+                }
+    
+                res.render('principal/subirminuta', {name: req.session.name, users , matricula: req.session.matricula});
+            });
+        });
     } 
+}
+
+function formatNames(names) {
+    if (typeof names === 'string') {
+        // Convertir la cadena JSON a un arreglo si es necesario
+        names = [names];
+    }
+
+    // Recorremos el arreglo de nombres y creamos una cadena formateada
+    const formattedString = names.map(name => `${name}: no`).join(', ');
+
+    return formattedString;
 }
 
 function uploadFile(req, res){
     upload(req, res, function (err) {
         if (err) {
-            console.log('Error al subir el archivo');
+        console.log('Error al subir el archivo');
         }
-        req.session.uploadedFileName = req.file.originalname;
-        res.redirect('/principal');
+        const data = req.body;
+        const firmasreq = data.users;
+        const firmas = formatNames(firmasreq);
+        const values = [
+            req.file.originalname,
+            data.source,
+            firmas,
+            'N/A'
+        ];
+        req.getConnection((err, conn) => {
+            conn.query('INSERT INTO archivos (name, envia, firmas, recibe) VALUES (?, ?, ?, ?)', values, (err, result) => {
+                if (err) {
+                    console.error('Query error:', err);
+                    return;
+                    }
+                    req.session.uploadedFileName = req.file.originalname;
+                    res.redirect('/principal');
+            });
+        });
     });
 }
 
@@ -118,7 +182,7 @@ function generatesignature(req, res){
             }else{
                 console.log("no hay nada");
             }
-            });
+        });
     });
     
 }
@@ -128,5 +192,6 @@ module.exports = {
     principal,
     generatesignature,
     uploadf,
-    uploadFile
+    uploadFile,
+    firmar
 }
