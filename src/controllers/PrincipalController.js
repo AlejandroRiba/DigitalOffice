@@ -1,6 +1,24 @@
 const crypto = require('crypto');
 const cryptJS = require('crypto-js');
 const NodeRSA = require('node-rsa');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Directorio donde se guardarán los archivos subidos
+const uploadDir = path.join(__dirname, '/archivos');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+    destination: uploadDir,
+    filename: function (req, file, cb) {
+        cb(null, file.fieldname + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage }).single('file');;
 
 function principal(req, res){
     if(req.session.loggedin != true){
@@ -10,35 +28,34 @@ function principal(req, res){
     } 
 }
 
-function generateUniqueKeyPair() {
-    const { publicKey, privateKey} = crypto.generateKeyPairSync('rsa', {
-        modulusLength: 2048,
-        publicKeyEncoding: { type: 'spki', format: 'pem' },
-        privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-    });
-
-    return { publicKey, privateKey };
+function uploadf(req, res){
+    if(req.session.loggedin != true){
+        res.redirect('/login');
+    } else{
+        res.render('principal/subirminuta', {name: req.session.name}); //si existe la sesión
+    } 
 }
 
-function pemToHex(pem) {
-    // Remover encabezados y retornos de línea
-    const base64 = pem.replace(/-----BEGIN .* KEY-----/, '')
-                     .replace(/-----END .* KEY-----/, '')
-                     .replace(/\r\n/g, '');
-
-    // Decodificar base64
-    const buffer = Buffer.from(base64, 'base64');
-
-    // Convertir a hexadecimal
-    const hex = buffer.toString('hex').toUpperCase();
-
-    return hex;
+function uploadFile(req, res){
+    upload(req, res, function (err) {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Error al subir el archivo', error: err.message });
+        }
+        res.status(200).json({ success: true, message: 'Archivo subido exitosamente' });
+    });
 }
 
 function calculateHash(data) {
     const hash = crypto.createHash('sha256');
     hash.update(data);
     return hash.digest('base64');
+}
+
+function hashPassword(password) {
+    const hash = crypto.createHash('sha256')
+                       .update(password)
+                       .digest('hex');
+    return hash;
 }
 
 function signDocument(hash, privateKey) {
@@ -66,36 +83,48 @@ function verifySignedDocument(signedDocument, publicKey) {
     return verifySignature(documentHash, signature, publicKey);
 }
 
-function generatekey(req, res){
+function addPemHeaders(base64, type) {
+    const header = `-----BEGIN ${type} KEY-----\n`;
+    const footer = `\n-----END ${type} KEY-----`;
+    const keyPem = header + base64.match(/.{1,64}/g).join('\n') + footer;
+    return keyPem;
+}
+
+function comparePasswords(plainPassword, hashedPassword) {
+    const hashedInputPassword = hashPassword(plainPassword);
+    return hashedInputPassword === hashedPassword;
+}
+
+function generatesignature(req, res){
     const data = req.body;
-    const { publicKey, privateKey } = generateUniqueKeyPair();
-    req.getConnection((err, conn) => {
-        conn.query('SELECT * FROM registros WHERE firma = ?', [publicKey], (err, datos) => {
+    const usr = hashPassword(data.user);
+    
+    req.getConnection((err, conn) => { //sacar llave privada
+        conn.query('SELECT * FROM private WHERE usuario = ?', [usr], (err, datos) => {
             if(datos.length > 0) {
-                generatekey(req, res);
+                const consulta = datos[0];
+                if(comparePasswords(data.confcontra, consulta.password)){
+                    const privateKey = addPemHeaders(consulta.key, 'PRIVATE');
+                    const documentHash = calculateHash(data.prueba);
+                    const signature = signDocument(documentHash, privateKey);
+                    const signedDocument = `${data.prueba}\n\n-----BEGIN SIGNATURE-----\n${signature}\n-----END SIGNATURE-----`;
+                    console.log(signedDocument);
+                    res.redirect('/principal');
+                }else{
+                    console.log("Contraseña incorrecta");
+                }
+            }else{
+                console.log("no hay nada");
             }
             });
     });
-   
-    const documentHash = calculateHash(data.prueba);
-    const signature = signDocument(documentHash, privateKey);
-    const signedDocument = `${data.prueba}\n\n-----BEGIN SIGNATURE-----\n${signature}\n-----END SIGNATURE-----`;
-    console.log(signedDocument);
-
-    const isSignatureValid = verifySignedDocument(signedDocument, publicKey);
-
-    if (isSignatureValid) {
-        console.log('La firma digital es válida.');
-    } else {
-        console.log('La firma digital no es válida.');
-    }
-    res.render('principal/index', {
-        signed: signedDocument, name: req.session.name
-    });
+    
 }
 
 
 module.exports = {
     principal,
-    generatekey,
+    generatesignature,
+    uploadf,
+    uploadFile
 }

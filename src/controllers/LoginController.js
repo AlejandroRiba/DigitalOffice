@@ -61,13 +61,23 @@ function generateUniqueKeyPair() {
     return { publicKey, privateKey };
 }
 
+function removePemHeaders(pem) {
+    const pemLines = pem.split('\n');
+    const base64Lines = pemLines.filter(line => {
+        return line && !line.startsWith('-----BEGIN') && !line.startsWith('-----END');
+    });
+    return base64Lines.join('');
+}
+
 function storeUser(req, res) {
     const data = req.body;
     const hashedPassword = hashPassword(data.contras);
     const hashedUser = hashPassword(data.matricula);
     data.contras = hashedPassword;
     const {publicKey, privateKey} = generateUniqueKeyPair();
-    console.log(privateKey);
+    const newpublicKey = removePemHeaders(publicKey);
+    const newprivateKey = removePemHeaders(privateKey);
+    console.log(newprivateKey);
     const userData = {
         matricula: data.matricula,
         password: data.contras,
@@ -75,7 +85,7 @@ function storeUser(req, res) {
         apellidos: data.lsname,
         email: data.email,
         cargo: data.cargo,
-        firma: publicKey
+        firma: newpublicKey
     };
 
     req.getConnection((err, conn) => {
@@ -106,7 +116,7 @@ function storeUser(req, res) {
                         }
 
                         const query1 = 'INSERT INTO private (usuario, password, `key`) VALUES (?, ?, ?)';
-                        const values2 = [hashedUser, userData.password, privateKey]
+                        const values2 = [hashedUser, userData.password, newprivateKey]
                         conn.query(query1, values2, (err, result) => {
                             if (err) {
                                 console.error('Query error:', err);

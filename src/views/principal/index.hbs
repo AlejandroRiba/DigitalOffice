@@ -1,36 +1,61 @@
 <div>
     <section style="padding: 10vh">
-        <div class="container-fluid h-custom">
-            <div class="row d-flex justify-content-center align-items-center h-100">
-                <div class="col-md-12 col-lg-8 col-xl-6 offset-xl-1">
+        <div class="container-fluid h-100">
+            <div class="row h-100">
+                <div class="col-md-3 col-lg-3 col-xl-2 menu">
+                    <div class="d-flex flex-column align-items-start">
+                        <p class="lead fw-normal mb-0">Menú</p>
+                        <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-lg m-2"
+                                href="/uploadf"
+                                role="button"
+                                rel="nofollow"
+                            >Subir archivo</a>
+                        <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-lg m-2"
+                                href="/index"
+                                role="button"
+                            >Firmar archivo</a>
+                    </div>
+                </div>
+                <div class="col-md-9 col-lg-9 col-xl-10 form-section">
                     <form method="POST" action="">
                         <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
+                            <p class="lead fw-normal mb-0 me-3">Sign your document</p>
                         </div>
-            
+                
                         <div class="divider d-flex align-items-center my-4">
                             <p class="text-center fw-bold mx-3 mb-0"></p>
                         </div>
-    
+
                         <div data-mdb-input-init class="form-outline mb-4">
                             <input type="text" id="prueba" name="prueba" class="form-control form-control-lg"
-                                placeholder="texto de prueba" required />
-                            <label class="form-label" for="prueba">Email or employee ID</label><br>
+                                placeholder="Enter your text" required/>
+                            <label class="form-label" for="prueba">Document Text</label><br>
                         </div>
-            
-                        <div data-mdb-input-init class="form-outline mb-3">
-                            <input type="text" id="pub" name="pub" class="form-control form-control-lg"
-                                value="{{signed}}" autocomplete="off"/>
-                            <label class="form-label" for="pub">Signed Document</label>
+        
+                        <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="text" id="user" name="user" class="form-control form-control-lg"
+                                placeholder="Enter your employee ID" required oninput="validarMatricula(this)"/>
+                            <label class="form-label" for="user">Employee ID</label><br>
+                            <small id="matriculaError" class="text-danger"></small>
                         </div>
-            
+
+                        <div data-mdb-input-init class="form-outline mb-4">
+                            <input type="password" id="confcontra" name="confcontra" class="form-control form-control-lg"
+                                placeholder="Password required" required />
+                            <label class="form-label" for="confcontra">Confirm Password</label><br>
+                        </div>
+                
                         <div class="text-center text-lg-start mt-4 pt-2">
                             <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg"
                                 style="padding-left: 2.5rem; padding-right: 2.5rem; background: #06547E;">Generar llave</button>
                         </div>
-    
                     </form>
                 </div>
             </div>
         </div>
     </section>
-</div>
+</div>    
