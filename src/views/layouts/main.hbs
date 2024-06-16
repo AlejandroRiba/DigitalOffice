@@ -19,16 +19,19 @@
             <ul>
               {{#if name}}
                 <li class="notification-icon">
-                    <a href="#"><i class="fas fa-bell"></i></a>
-                  <div class="notification-content">
                     {{#if users.length}}
+                      <a href="#"><i class="fas fa-bell"></i></a><span style="color: rgb(255, 38, 0); margin-bottom:12px; font-size:34px">•</span>
+                      <div class="notification-content">
                       {{#each users}}
-                        <a href="/firmar">{{this.matricula}}</a>
+                        <a href="/firmar">Se requiere tu firma en la minuta {{this.name}} subida por {{this.matricula}}.</a>
                       {{/each}}
+                      </div>
                     {{else}}
-                      <a href="/">No tienes documentos por firmar.</a>
+                      <a href="#"><i class="fa-regular fa-bell"></i></a>
+                      <div class="notification-content">
+                        <a href="/">No tienes documentos por firmar.</a>
+                      </div>
                     {{/if}}
-                  </div>
                 </li>
                 <span>&nbsp;&nbsp;</span>
                 <li class="dropdown">

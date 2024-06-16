@@ -30,7 +30,7 @@ function principal(req, res){
                 return res.status(500).send('Database connection error');
             }
             //aquí habría que hacer una de las comprobaciones de si ya firmó
-            conn.query('SELECT name FROM registros WHERE', (err, users) => {
+            conn.query('SELECT * FROM registros', (err, users) => {
                 if (err) {
                     console.error('Error fetching users from the database:', err);
                 }
