@@ -5,12 +5,13 @@ const PrincipalController = require('../controllers/PrincipalController');
 const router = express.Router();
 
 router.get('/principal', PrincipalController.principal);
-router.post('/principal', PrincipalController.generatesignature);
+router.post('/principal', PrincipalController.generateaes);
 router.get('/uploadf', PrincipalController.uploadf);
 router.post('/uploadf', PrincipalController.uploadMinut);
 router.get('/uploadm', PrincipalController.uploadm);
 router.post('/uploadm', PrincipalController.uploadMemo);
 router.get('/firmar', PrincipalController.firmar);
+router.post('/firmar', PrincipalController.generatesignature);
 router.get('/visualizar', PrincipalController.visualizar);
 
 router.get('/download', function(req, res) {

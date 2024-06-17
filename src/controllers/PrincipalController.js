@@ -243,6 +243,34 @@ function generatesignature(req, res){
     
 }
 
+function generateaes(req, res){
+    const data = req.body;
+    const usr = hashPassword(data.user);
+    req.getConnection((err, conn) => { //sacar llave privada
+        conn.query('SELECT * FROM registros WHERE matricula = ?', [data.user], (err, datos) => {
+            if(datos.length > 0) {
+                const consulta = datos[0];
+                const key128 = crypto.randomBytes(16);
+                console.log('Clave AES: ',key128.toString('hex'));
+                const publicKey = addPemHeaders(consulta.firma, 'PUBLIC');
+                const cryp = crypto.publicEncrypt(publicKey, key128);
+                console.log(cryp.toString('base64'));
+
+                conn.query('SELECT * FROM private WHERE usuario = ?',[usr] , (err, datos1) => {
+                    const consulta = datos1[0];
+                    const privateKey = addPemHeaders(consulta.key, 'PRIVATE');
+                    const decr = crypto.privateDecrypt(privateKey, cryp);
+                    console.log('Clave descifrada: ',decr.toString('hex'));
+                    res.redirect('/principal');
+                });
+            }else{
+                console.log("no hay nada");
+            }
+        });
+    });
+    
+}
+
 
 module.exports = {
     principal,
@@ -252,5 +280,6 @@ module.exports = {
     firmar,
     uploadMemo,
     uploadm,
-    visualizar
+    visualizar,
+    generateaes
 }
