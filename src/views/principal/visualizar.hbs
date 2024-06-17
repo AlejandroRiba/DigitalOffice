@@ -1,0 +1,35 @@
+<div class="container-fluid h-100" style="padding: 10vh;">
+    <div class="row h-100">
+        {{#if minutas.length}}
+            <div class="col-6">
+                <h2>Minutas</h2>
+                {{#each minutas}}
+                    <a href="/firmar" role="button" class="btn btn-primary my-2">
+                        Se requiere tu firma en la minuta {{this.name}} subida por {{this.envia}}.
+                    </a>
+                {{/each}}
+            </div>
+        {{else}}
+            <div class="col-6">
+                <h2>Minutas</h2>
+                <p>No tienes minutas por firmar.</p>
+            </div>
+        {{/if}}
+
+        {{#if memorandos.length}}
+            <div class="col-6">
+                <h2>Memorandos</h2>
+                {{#each memorandos}}
+                    <a href="/firmar" role="button" class="btn btn-secondary my-2">
+                        Se requiere tu firma en el memorando {{this.name}} subido por {{this.envia}}.
+                    </a>
+                {{/each}}
+            </div>
+        {{else}}
+            <div class="col-6">
+                <h2>Memorandos</h2>
+                <p>No tienes memorandos por firmar.</p>
+            </div>
+        {{/if}}
+    </div>
+</div>

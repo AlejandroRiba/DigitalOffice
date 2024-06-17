@@ -41,12 +41,33 @@ function principal(req, res){
     } 
 }
 
+function visualizar(req, res){
+    if(req.session.loggedin != true){
+        res.redirect('/login');
+    } else{
+        req.getConnection((err, conn) => {
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                return res.status(500).send('Database connection error');
+            }
+            //aquí habría que hacer una de las comprobaciones de si ya firmó
+            conn.query('SELECT name, envia, tipo FROM archivos', (err, archivos) => {
+                if (err) {
+                    console.error('Error fetching users from the database:', err);
+                }
+                const minutas = archivos.filter(archivo => archivo.tipo === 'Min');
+                const memorandos = archivos.filter(archivo => archivo.tipo === 'Memo');
+                res.render('principal/visualizar', {name: req.session.name, minutas, memorandos , matricula: req.session.matricula});
+            });
+        });
+    } 
+}
+
 function firmar(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        const uploadedFileName = req.session.uploadedFileName; // Reemplaza con tu lógica para obtener el nombre del archivo
-        res.render('principal/firmar', { name: req.session.name, uploadedFileName });
+        res.render('principal/firmar', { name: req.session.name});
     } 
 }
 
@@ -77,20 +98,7 @@ function uploadm(req, res){
         res.redirect('/login');
     } else{
         const matricula = req.session.matricula;
-        req.getConnection((err, conn) => {
-            if (err) {
-                console.error('Error connecting to the database:', err);
-                return res.status(500).send('Database connection error');
-            }
-    
-            conn.query('SELECT matricula, nombre FROM registros WHERE matricula != ?',[matricula], (err, users) => {
-                if (err) {
-                    console.error('Error fetching users from the database:', err);
-                }
-    
-                res.render('principal/subirmemo', {name: req.session.name, users , matricula: req.session.matricula});
-            });
-        });
+        res.render('principal/subirmemo', {name: req.session.name, matricula: req.session.matricula});
     } 
 }
 
@@ -127,7 +135,6 @@ function uploadMinut(req, res){
                     console.error('Query error:', err);
                     return;
                     }
-                    req.session.uploadedFileName = req.file.originalname;
                     res.redirect('/principal');
             });
         });
@@ -140,8 +147,7 @@ function uploadMemo(req, res){
         console.log('Error al subir el archivo');
         }
         const data = req.body;
-        const firmasreq = data.users;
-        const firmas = formatNames(firmasreq);
+        const firmas = formatNames(data.source);
         const values = [
             req.file.originalname,
             data.source,
@@ -155,7 +161,6 @@ function uploadMemo(req, res){
                     console.error('Query error:', err);
                     return;
                     }
-                    req.session.uploadedFileName = req.file.originalname;
                     res.redirect('/principal');
             });
         });
@@ -246,5 +251,6 @@ module.exports = {
     uploadMinut,
     firmar,
     uploadMemo,
-    uploadm
+    uploadm,
+    visualizar
 }
