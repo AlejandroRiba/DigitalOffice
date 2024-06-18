@@ -42,12 +42,7 @@
                 </div>
                 
             </form>
-            {{#if uploadedFileName}}
-                <p>Documento subido: {{ uploadedFileName }}</p>
-                <a href="/download">Descargar documento</a>
-            {{else}}
-                <p>No se ha subido ningún documento aún.</p>
-            {{/if}}
+            
             <div id="mensajeConfirmacion" class="alert alert-warning mt-3 d-none">
                 <p><strong>Confirmación:</strong> Al firmar este documento, usted acepta los términos y condiciones.</p>
                 <button class="btn btn-sm btn-success" onclick="firmarDocumento()">Firmar Ahora</button>
