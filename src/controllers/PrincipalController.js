@@ -47,8 +47,6 @@ function obtenerNotificaciones(results, req_matricula){
     for (let i = 0; i < results.length; i++) {
         const result = results[i];
         const firmas = result.firmas;
-        console.log("\nFIRMAS: ", firmas)
-
         const pairs = firmas.split(', ');
 
         for (let j = 0; j < pairs.length; j++) {
@@ -95,7 +93,6 @@ function firmar(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        console.log("Parametros: ",req.params);
         res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications});
     } 
 }

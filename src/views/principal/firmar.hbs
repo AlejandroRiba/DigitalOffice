@@ -2,10 +2,17 @@
     <div class="row h-100">
         <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4">
             <div class="d-flex flex-column align-items-start">
+                <h4>Documentos por firmar</h4>
+                <p>Selecciona un documento</p>
+                <ul>
+                    {{#each notifications}}
+                        <li onclick="mostrarFormulario(this)" class="documento-item">{{this.name}}</li>
+                    {{/each}}
+                </ul>
             </div>
         </div>
         <div class="col-md-8 col-lg-8 col-xl-8 form-section">
-            <form method="POST" action="">
+            <form method="POST" action="" onsubmit="return mostrarConfirmacion()" id="formContainer" style="display: none;">
                 <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                     <p class="lead fw-normal mb-0 me-3">Sign your document</p>
                 </div>
@@ -15,8 +22,8 @@
                 </div>
 
                 <div data-mdb-input-init class="form-outline mb-4">
-                    <input type="text" id="prueba" name="prueba" class="form-control form-control-lg" placeholder="Enter your text" required/>
-                    <label class="form-label" for="prueba">Document Text</label><br>
+                    <!-- Aquí mostraremos dinámicamente el nombre del archivo seleccionado -->
+                    <span id="nombreArchivoSeleccionado" style="font-size: 1.2rem; color: #333; font-weight: bold;"></span>
                 </div>
     
                 <div data-mdb-input-init class="form-outline mb-4">
@@ -31,15 +38,52 @@
                 </div>
         
                 <div class="text-center text-lg-start mt-4 pt-2">
-                    <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem; background: #06547E;">Generar llave</button>
+                    <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem; background: #06547E;">Firmar documento</button>
                 </div>
+                
             </form>
             {{#if uploadedFileName}}
-                        <p>Documento subido: {{ uploadedFileName }}</p>
-                        <a href="/download">Descargar documento</a>
-                    {{else}}
-                        <p>No se ha subido ningún documento aún.</p>
-                    {{/if}}
+                <p>Documento subido: {{ uploadedFileName }}</p>
+                <a href="/download">Descargar documento</a>
+            {{else}}
+                <p>No se ha subido ningún documento aún.</p>
+            {{/if}}
+            <div id="mensajeConfirmacion" class="alert alert-warning mt-3 d-none">
+                <p><strong>Confirmación:</strong> Al firmar este documento, usted acepta los términos y condiciones.</p>
+                <button class="btn btn-sm btn-success" onclick="firmarDocumento()">Firmar Ahora</button>
+                <button class="btn btn-sm btn-danger ms-2" onclick="cancelarFirma()">Cancelar</button>
+            </div>
         </div>
     </div>
 </div>
+<script>
+    function mostrarConfirmacion() {
+        document.getElementById('mensajeConfirmacion').classList.remove('d-none');
+        return false;
+    }
+
+    function firmarDocumento() {
+        document.querySelector('form').submit();
+    }
+
+    function cancelarFirma() {
+        document.getElementById('mensajeConfirmacion').classList.add('d-none');
+    }
+
+    function mostrarFormulario(elemento) {
+        var nombreArchivo = elemento.textContent;
+        document.getElementById('nombreArchivoSeleccionado').textContent = "Documento a firmar: " + nombreArchivo;
+        document.getElementById('formContainer').style.display = 'block';
+    }
+</script>
+
+<style>
+    .documento-item {
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .documento-item:hover {
+        background-color: #f0f0f0;
+    }
+</style>
