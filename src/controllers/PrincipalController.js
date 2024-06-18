@@ -4,6 +4,7 @@ const NodeRSA = require('node-rsa');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { fileLoader } = require('ejs');
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
@@ -18,7 +19,15 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage }).single('file');;
+const upload = multer({ storage }).single('file');
+
+const checkFileExists = (filePath) => {
+    return fs.promises.access(filePath, fs.constants.F_OK)
+        .then(() => true)
+        .catch(() => false);
+};
+
+
 
 function principal(req, res){
     if(req.session.loggedin != true){
@@ -115,8 +124,8 @@ function uploadf(req, res){
                 if (err) {
                     console.error('Error fetching users from the database:', err);
                 }
-    
-                res.render('principal/subirminuta', {name: req.session.name, users , matricula: req.session.matricula, notifications: req.session.notifications});
+                req.session.users = users;
+                res.render('principal/subirminuta', {name: req.session.name, users: req.session.users , matricula: req.session.matricula, notifications: req.session.notifications});
             });
         });
     } 
@@ -142,56 +151,102 @@ function formatNames(names) {
     return formattedString;
 }
 
-function uploadMinut(req, res){
-    upload(req, res, function (err) {
-        if (err) {
-        console.log('Error al subir el archivo');
-        }
-        const data = req.body;
-        const firmasreq = data.users;
-        const firmas = formatNames(firmasreq);
-        const values = [
-            req.file.originalname,
-            data.source,
-            firmas,
-            'N/A',
-            'Min'
-        ];
-        req.getConnection((err, conn) => {
-            conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo) VALUES (?, ?, ?, ?, ?)', values, (err, result) => {
-                if (err) {
-                    console.error('Query error:', err);
-                    return;
+function uploadMinut(req, res) {
+    const tempUpload = multer({ storage: multer.memoryStorage() }).single('file');
+
+    tempUpload(req, res, function (err) {
+        const filePath = path.join(uploadDir, req.file.originalname);
+
+        checkFileExists(filePath)
+            .then(exists => {
+                if (exists) {
+                    if(req.session.loggedin != true){
+                        res.redirect('/login');
+                    } else{
+                        res.render('principal/subirminuta',  {name: req.session.name, users: req.session.users , notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists' });
                     }
-                    res.redirect('/principal');
+                }else{
+                    fs.writeFile(filePath, req.file.buffer, (err) => {
+                        const data = req.body;
+                        const firmasreq = data.users;
+                        const firmas = formatNames(firmasreq);
+                        const values = [
+                            req.file.originalname,
+                            data.source,
+                            firmas,
+                            'N/A',
+                            'Min'
+                        ];
+    
+                        req.getConnection((err, conn) => {
+                            if (err) {
+                                console.error('Connection error:', err);
+                                return res.status(500).json({ error: 'Error de conexión a la base de datos' });
+                            }
+    
+                            conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo) VALUES (?, ?, ?, ?, ?)', values, (err, result) => {
+                                if (err) {
+                                    console.error('Query error:', err);
+                                    return res.status(500).json({ error: 'Error en la consulta de la base de datos' });
+                                }
+    
+                                res.redirect('/principal');
+                            });
+                        });
+                    });
+                }
+                
+            })
+            .catch(err => {
+                console.error('Error al verificar el archivo:', err);
+                res.status(500).json({ error: 'Error al verificar el archivo' });
             });
-        });
     });
 }
 
-function uploadMemo(req, res){
-    upload(req, res, function (err) {
-        if (err) {
-        console.log('Error al subir el archivo');
-        }
-        const data = req.body;
-        const firmas = formatNames(data.source);
-        const values = [
-            req.file.originalname,
-            data.source,
-            firmas,
-            data.destiny,
-            'Memo'
-        ];
-        req.getConnection((err, conn) => {
-            conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo) VALUES (?, ?, ?, ?, ?)', values, (err, result) => {
-                if (err) {
-                    console.error('Query error:', err);
-                    return;
+function uploadMemo(req, res) {
+    const tempUpload = multer({ storage: multer.memoryStorage() }).single('file');
+
+    tempUpload(req, res, function (err) {
+
+        const filePath = path.join(uploadDir, req.file.originalname);
+
+        checkFileExists(filePath)
+            .then(exists => {
+                if (exists) {
+                    if(req.session.loggedin != true){
+                        res.redirect('/login');
+                    } else{
+                        res.render('principal/subirmemo',  {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists' });
                     }
-                    res.redirect('/principal');
+                }
+
+                fs.writeFile(filePath, req.file.buffer, (err) => {
+
+                    const data = req.body;
+                    const firmas = formatNames(data.source);
+                    const values = [
+                        req.file.originalname,
+                        data.source,
+                        firmas,
+                        data.destiny,
+                        'Memo'
+                    ];
+                    req.getConnection((err, conn) => {
+                        conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo) VALUES (?, ?, ?, ?, ?)', values, (err, result) => {
+                            if (err) {
+                                console.error('Query error:', err);
+                                return;
+                                }
+                                res.redirect('/principal');
+                        });
+                    });
+                });
+            })
+            .catch(err => {
+                console.error('Error al verificar el archivo:', err);
+                res.status(500).json({ error: 'Error al verificar el archivo' });
             });
-        });
     });
 }
 
