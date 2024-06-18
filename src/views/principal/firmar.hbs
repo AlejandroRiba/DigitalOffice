@@ -56,26 +56,8 @@
         </div>
     </div>
 </div>
-<script>
-    function mostrarConfirmacion() {
-        document.getElementById('mensajeConfirmacion').classList.remove('d-none');
-        return false;
-    }
 
-    function firmarDocumento() {
-        document.querySelector('form').submit();
-    }
-
-    function cancelarFirma() {
-        document.getElementById('mensajeConfirmacion').classList.add('d-none');
-    }
-
-    function mostrarFormulario(elemento) {
-        var nombreArchivo = elemento.textContent;
-        document.getElementById('nombreArchivoSeleccionado').textContent = "Documento a firmar: " + nombreArchivo;
-        document.getElementById('formContainer').style.display = 'block';
-    }
-</script>
+<script type="text/javascript" src="/js/firmar.js"></script>
 
 <style>
     .documento-item {

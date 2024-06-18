@@ -264,8 +264,7 @@ function generatesignature(req, res){
                 console.log("no hay nada");
             }
         });
-    });
-    
+    })
 }
 
 function generateaes(req, res){
