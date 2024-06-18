@@ -5,6 +5,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { fileLoader } = require('ejs');
+const { PDFDocument, rgb } = require('pdf-lib');
+
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
@@ -300,26 +302,77 @@ function comparePasswords(plainPassword, hashedPassword) {
 function generatesignature(req, res){
     const data = req.body;
     const usr = hashPassword(data.user);
-    
-    req.getConnection((err, conn) => { //sacar llave privada
-        conn.query('SELECT * FROM private WHERE usuario = ?', [usr], (err, datos) => {
-            if(datos.length > 0) {
-                const consulta = datos[0];
-                if(comparePasswords(data.confcontra, consulta.password)){
-                    const privateKey = addPemHeaders(consulta.key, 'PRIVATE');
-                    const documentHash = calculateHash(data.prueba);
-                    const signature = signDocument(documentHash, privateKey);
-                    const signedDocument = `${data.prueba}\n\n-----BEGIN SIGNATURE-----\n${signature}\n-----END SIGNATURE-----`;
-                    console.log(signedDocument);
-                    res.redirect('/principal');
+    if(req.session.matricula !== data.user)
+        console.log("Credenciales incorrectas");
+    else{
+        req.getConnection((err, conn) => { //sacar llave privada
+            conn.query('SELECT * FROM private WHERE usuario = ?', [usr], (err, datos) => {
+                if(datos.length > 0) {
+                    const consulta = datos[0];
+                    if(comparePasswords(data.confcontra, consulta.password)){
+                        const privateKey = addPemHeaders(consulta.key, 'PRIVATE');
+                        const filePath = 'src/archivos/' + data.nombreArchivoSeleccionado;
+                        const filePathPriv = 'src/cifrados/' + data.nombreArchivoSeleccionado;
+                        const dataDocument = fs.readFileSync(filePath, 'utf8');
+                        const documentHash = calculateHash(dataDocument);
+                        const signature = signDocument(documentHash, privateKey);
+                        var signedDocument;
+                        if(!checkIfFileExists(filePathPriv)){
+                            console.log(1)
+                            signedDocument = `${dataDocument}-SIGNATURE-${signature}`;
+                        }
+                        else{
+                            console.log(2)
+                            const dataDocumentSign = fs.readFileSync(filePathPriv, 'utf8');
+                            signedDocument = `${dataDocumentSign}-SIGNATURE-${signature}`;
+                        }
+                        fs.writeFileSync(filePathPriv, signedDocument,'utf8')
+                        res.redirect('/principal');
+                    }else{
+                        console.log("Contraseña incorrecta");
+                    }
                 }else{
-                    console.log("Contraseña incorrecta");
+                    console.log("no hay nada");
                 }
-            }else{
-                console.log("no hay nada");
-            }
+            });
         });
-    })
+    }
+}
+
+async function removeSignaturesFromPDF(inputFilePath, outputFilePath) {
+    try {
+        // Leer el archivo PDF
+        const pdfBytes = fs.readFileSync(inputFilePath);
+
+        // Cargar el documento PDF usando pdf-lib
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+
+        // Eliminar firmas o datos adicionales según sea necesario
+        // Aquí se puede implementar la lógica específica para detectar y eliminar firmas del PDF
+
+        // Guardar el archivo modificado
+        const modifiedPdfBytes = await pdfDoc.save();
+
+        fs.writeFileSync(outputFilePath, modifiedPdfBytes);
+
+        console.log(`Firmas eliminadas correctamente. Documento guardado en: ${outputFilePath}`);
+    } catch (error) {
+        console.error('Error al eliminar firmas y guardar el documento:', error);
+    }
+}
+
+function checkIfFileExists(filePath) {
+    try {
+        // Verificar si el archivo existe
+        fs.accessSync(filePath, fs.constants.F_OK);
+        return true;
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            return false;
+        } else {
+            throw err;
+        }
+    }
 }
 
 function generateaes(req, res){

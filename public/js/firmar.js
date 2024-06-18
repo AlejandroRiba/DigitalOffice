@@ -5,13 +5,7 @@ function mostrarConfirmacion() {
 }
 
 function firmarDocumento(req, res) {
-    var user = document.getElementById('user').value;
-    var password = document.getElementById('confcontra').value;
-    var documentName = document.getElementById('nombreArchivoSeleccionado').textContent;
-
-    console.log("Employee ID: " + user);
-    console.log("Password: " + password);
-    console.log(documentName);
+    document.querySelector('form').submit();
 }
 
 function cancelarFirma() {
@@ -21,5 +15,6 @@ function cancelarFirma() {
 function mostrarFormulario(elemento) {
     var nombreArchivo = elemento.textContent;
     document.getElementById('nombreArchivoSeleccionado').textContent = "Documento a firmar: " + nombreArchivo;
+    document.getElementById('nombreArchivoSeleccionadoInput').value = nombreArchivo;
     document.getElementById('formContainer').style.display = 'block';
 }
