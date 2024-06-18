@@ -19,10 +19,10 @@
             <ul>
               {{#if name}}
                 <li class="notification-icon">
-                    {{#if users.length}}
+                    {{#if notifications.length}}
                       <a href="#"><i class="fas fa-bell"></i></a><span style="color: rgb(255, 38, 0); margin-bottom:12px; font-size:34px">•</span>
                       <div class="notification-content">
-                      {{#each users}}
+                      {{#each notifications}}
                         <a href="/firmar">Se requiere tu firma en la minuta {{this.name}} subida por {{this.matricula}}.</a>
                       {{/each}}
                       </div>

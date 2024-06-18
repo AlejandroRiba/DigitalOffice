@@ -4,6 +4,7 @@ const NodeRSA = require('node-rsa');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { notify } = require('../routes/principal');
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
@@ -35,43 +36,39 @@ function principal(req, res){
                 if (err) {
                     console.error('Error fetching users from the database:', err);
                 }
-                let enviaValue = [];
-
-                console.log("MATRICULA: ", req.session.matricula)
-
-                // Iterar sobre los resultados
-                for (let i = 0; i < results.length; i++) {
-                    const result = results[i];
-                    const firmas = result.firmas;
-                    console.log("\nFIRMAS: ", firmas)
-
-                    // Dividir la cadena firmas en pares de matrícula y estado
-                    const pairs = firmas.split(', ');
-
-                    // Iterar sobre cada par
-                    for (let j = 0; j < pairs.length; j++) {
-                        const pair = pairs[j];
-
-                        // Separar matrícula y estado
-                        const [matricula, estado] = pair.split(': ');
-                        console.log(matricula, estado)
-
-                        // Verificar si la matrícula coincide con req.session.matricula y el estado es "no"
-                        if (matricula === req.session.matricula && estado === 'no') {
-                            const objeto = {
-                                name: result.name,
-                                matricula: result.envia
-                            };
-                            enviaValue.push(objeto);
-                            break; // Terminar la búsqueda una vez que se encuentra el resultado
-                        }
-                    }
-                }
-                console.log("\nENV:", enviaValue);
-                res.render('principal/index', {name: req.session.name, users: enviaValue , matricula: req.session.matricula});
+                let notifications = obtenerNotificaciones(results, req.session.matricula);
+                
+                res.render('principal/index', {name: req.session.name, notifications: notifications , matricula: req.session.matricula});
             });
         });
     } 
+}
+
+function obtenerNotificaciones(results, req_matricula){
+    let enviaValue = [];
+    for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const firmas = result.firmas;
+        console.log("\nFIRMAS: ", firmas)
+
+        const pairs = firmas.split(', ');
+
+        for (let j = 0; j < pairs.length; j++) {
+            const pair = pairs[j];
+
+            const [matricula, estado] = pair.split(': ');
+
+            if (matricula === req_matricula && estado === 'no') {
+                const objeto = {
+                    name: result.name,
+                    matricula: result.envia
+                };
+                enviaValue.push(objeto);
+                break; 
+            }
+        }
+    }
+    return enviaValue;
 }
 
 function visualizar(req, res){
@@ -100,6 +97,7 @@ function firmar(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
+        console.log("Parametros: ",req.params);
         res.render('principal/firmar', { name: req.session.name});
     } 
 }
