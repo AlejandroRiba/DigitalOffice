@@ -4,7 +4,6 @@ const NodeRSA = require('node-rsa');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { notify } = require('../routes/principal');
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
@@ -25,7 +24,6 @@ function principal(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        const data = req.res;
         req.getConnection((err, conn) => {
             if (err) {
                 console.error('Error connecting to the database:', err);
@@ -37,8 +35,8 @@ function principal(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
                 let notifications = obtenerNotificaciones(results, req.session.matricula);
-                
-                res.render('principal/index', {name: req.session.name, notifications: notifications , matricula: req.session.matricula});
+                req.session.notifications = notifications;
+                res.render('principal/index', {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula});
             });
         });
     } 
@@ -87,7 +85,7 @@ function visualizar(req, res){
                 }
                 const minutas = archivos.filter(archivo => archivo.tipo === 'Min');
                 const memorandos = archivos.filter(archivo => archivo.tipo === 'Memo');
-                res.render('principal/visualizar', {name: req.session.name, minutas, memorandos , matricula: req.session.matricula});
+                res.render('principal/visualizar', {name: req.session.name, minutas, memorandos , matricula: req.session.matricula, notifications: req.session.notifications});
             });
         });
     } 
@@ -98,7 +96,7 @@ function firmar(req, res){
         res.redirect('/login');
     } else{
         console.log("Parametros: ",req.params);
-        res.render('principal/firmar', { name: req.session.name});
+        res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications});
     } 
 }
 
@@ -118,7 +116,7 @@ function uploadf(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
     
-                res.render('principal/subirminuta', {name: req.session.name, users , matricula: req.session.matricula});
+                res.render('principal/subirminuta', {name: req.session.name, users , matricula: req.session.matricula, notifications: req.session.notifications});
             });
         });
     } 
@@ -128,8 +126,7 @@ function uploadm(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        const matricula = req.session.matricula;
-        res.render('principal/subirmemo', {name: req.session.name, matricula: req.session.matricula});
+        res.render('principal/subirmemo', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications});
     } 
 }
 

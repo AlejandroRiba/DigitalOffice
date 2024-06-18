@@ -50,7 +50,7 @@ app.listen(app.get('port'), () => {
 
 app.get('/', (req, res) => { //ruta raíz
     if(req.session.loggedin == true){
-        res.render('principal/index', {name: req.session.name});
+        res.render('principal/index', {name: req.session.name, notifications: req.session.notifications});
     } else{
         res.render('home');
     }
