@@ -1,0 +1,62 @@
+<div class="container-fluid h-100" style="padding: 10vh;">
+    <div class="row h-100">
+        <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4">
+            {{#if error}}
+                <!-- Mostrar el error utilizando JavaScript -->
+                <div id="customError" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{error}}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <script>
+                    setTimeout(function() {
+                        var alert = document.getElementById('customError');
+                        if (alert) {
+                            alert.classList.add('hide');
+                            alert.addEventListener('transitionend', function() {
+                                alert.remove();
+                            }, { once: true });
+                        }
+                    }, 4000);
+                </script>
+            {{/if}}
+            <div class="d-flex flex-column align-items-start">
+                <h4>Documents to sign</h4>
+                <p>Select a document</p>
+                <ul>
+                    {{#each documents}}
+                        <!-- Aquí en lugar de llamar a una función para mostrar el formulario, se debe cargar el documento en un iframe -->
+                        <li onclick="cargarDocumento(this)" class="documento-item">{{this}}</li>
+                    {{/each}}
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-8 col-lg-8 col-xl-8 form-section">
+            <!-- Aquí se muestra el iframe que cargará el documento -->
+            <iframe id="documentoFrame" src="/archivos/GCM.pdf" style="width: 100%; height: 80vh; border: none;"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+    function cargarDocumento(element) {
+        var nombreDocumento = element.textContent.trim(); // Obtener el nombre del documento
+        var urlDocumento = obtenerURLDocumento(nombreDocumento); // Obtener la URL del documento según su nombre
+        console.log("Cargando documento:", urlDocumento); // Log para verificar la URL generada
+        
+        var iframe = document.getElementById('documentoFrame');
+        iframe.src = urlDocumento; // Cargar el documento en el iframe
+        
+        // Verificar si el iframe carga correctamente el documento
+        iframe.onload = function() {
+            console.log("Documento cargado correctamente:", urlDocumento);
+        };
+        iframe.onerror = function() {
+            console.error("Error al cargar el documento:", urlDocumento);
+        };
+    }
+
+    function obtenerURLDocumento(nombreDocumento) {
+        // Aquí puedes ajustar la lógica para generar la URL si es necesario
+        return '/archivos/' + nombreDocumento;
+    }
+</script>

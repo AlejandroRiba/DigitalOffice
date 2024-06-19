@@ -10,6 +10,7 @@ const { PDFDocument, rgb } = require('pdf-lib');
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
+
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
@@ -70,7 +71,7 @@ function obtenerNotificaciones(results, req_matricula){
                     name: result.name,
                     matricula: result.envia
                 };
-                
+
                 if(!enviaValue.includes(objeto)){
                     enviaValue.push(objeto);
                     break; 
@@ -305,7 +306,7 @@ function uploadMemoConfidential(req, res) {
             return res.status(500).json({ error: 'Error during file upload' });
         }
 
-        const filePath = path.join(uploadDir, req.file.originalname);
+        const filePath = 'src/cifrados/' + req.file.originalname;
 
         checkFileExists(filePath)
             .then(exists => {
@@ -316,6 +317,14 @@ function uploadMemoConfidential(req, res) {
                         return res.render('principal/subirmemoconf', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists' });
                     }
                 }
+
+                //*************************************/
+                //*************************************/
+                //*************************************/
+                // Aqui hace falta cifrar el archivo xd
+                //*************************************/ 
+                //*************************************/ 
+                //*************************************/ 
 
                 fs.writeFile(filePath, req.file.buffer, (err) => {
                     if (err) {
@@ -367,6 +376,57 @@ function uploadMemoConfidential(req, res) {
             });
     });
 }
+
+function verDocumentos(req, res){
+    if(req.session.loggedin != true){
+        res.redirect('/login');
+    } else{
+        req.getConnection((err, conn) => {
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                return res.status(500).send('Database connection error');
+            }
+            //aquí habría que hacer una de las comprobaciones de si ya firmó
+            conn.query('SELECT name FROM archivos WHERE recibe = ? OR recibe = "N/A"', req.session.matricula, (err, results) => {
+                if (err) {
+                    console.error('Error fetching users from the database:', err);
+                }
+                const nombresArchivos = results.map(result => result.name);
+                res.render('principal/verDocumentos', {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, documents: nombresArchivos});
+            });
+        });
+    } 
+}
+
+function obtenerDocumentos(results, req_matricula){
+    let enviaValue = [];
+    for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const firmas = result.firmas;
+        const pairs = firmas.split(', ');
+
+        for (let j = 0; j < pairs.length; j++) {
+            const pair = pairs[j];
+
+            const [matricula, estado] = pair.split(': ');
+
+            if (matricula === req_matricula && estado === 'no') {
+                const objeto = {
+                    name: result.name,
+                    matricula: result.envia
+                };
+
+                if(!enviaValue.includes(objeto)){
+                    enviaValue.push(objeto);
+                    break; 
+                }
+            }
+        }
+    }
+    return enviaValue;
+}
+
+
 
 function calculateHash(data) {
     const hash = crypto.createHash('sha256');
@@ -596,5 +656,6 @@ module.exports = {
     visualizar,
     generateaes,
     uploadmConfidential,
-    uploadMemoConfidential
+    uploadMemoConfidential,
+    verDocumentos
 }
