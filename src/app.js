@@ -33,7 +33,7 @@ app.use(bodyParser.json());
 app.use(myConnection(mysql, {
     host: 'localhost',
     user: 'root',
-    password: 'root',
+    password: '',
     port: '3306',
     database: 'employees'
 }));

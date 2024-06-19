@@ -24,10 +24,10 @@
                         
 
                         <div data-mdb-input-init class="form-outline mb-4">
-                            <input type="text" id="source" name="source" class="form-control form-control-lg" placeholder="quien envia" required oninput="validarMatricula(this)"/>
-                            <label class="form-label" for="source">Employee ID</label><br>
-                            <small id="matriculaError" class="text-danger"></small>
+                            <span style="font-size: 1.2rem; color: #333; font-weight: bold;">Employee ID: {{matricula}}</span>
+                            <input type="hidden" id="source" name="source" value="{{matricula}}">
                         </div>
+
                         <label class="form-label" for="users">Quién firma?</label><br>
                         <div class="form-check form-check-inline">
                             <input style="opacity: 0.5; cursor: not-allowed;" class="form-check-input" type="checkbox" id="user_{{matricula}}" name="users" value="{{matricula}}" checked disabled>
@@ -55,4 +55,4 @@
             </div>
         </div>
     </section>
-</div>    
+</div>

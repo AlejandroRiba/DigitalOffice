@@ -104,7 +104,7 @@ function firmar(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications});
+        res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula});
     } 
 }
 
@@ -312,24 +312,54 @@ function generatesignature(req, res){
                     if(comparePasswords(data.confcontra, consulta.password)){
                         const privateKey = addPemHeaders(consulta.key, 'PRIVATE');
                         const filePath = 'src/archivos/' + data.nombreArchivoSeleccionado;
-                        const filePathPriv = 'src/cifrados/' + data.nombreArchivoSeleccionado;
+                        const filePathPriv = 'src/firmas/' + removeExtension(data.nombreArchivoSeleccionado) + '.txt';
                         const dataDocument = fs.readFileSync(filePath, 'utf8');
                         const documentHash = calculateHash(dataDocument);
                         const signature = signDocument(documentHash, privateKey);
                         var signedDocument;
                         if(!checkIfFileExists(filePathPriv)){
-                            console.log(1)
-                            signedDocument = `${dataDocument}-SIGNATURE-${signature}`;
+                            signedDocument = `-SIGNATURE-${signature}`;
                         }
                         else{
-                            console.log(2)
                             const dataDocumentSign = fs.readFileSync(filePathPriv, 'utf8');
                             signedDocument = `${dataDocumentSign}-SIGNATURE-${signature}`;
                         }
                         fs.writeFileSync(filePathPriv, signedDocument,'utf8')
+
+                        const query = 'SELECT firmas FROM archivos WHERE name = ?'
+                        const name = [data.nombreArchivoSeleccionado]
+                        conn.query(query, name, (err, results) => {
+                            if (err) {
+                                console.error('Error en la consulta:', err);
+                                return;
+                            }
+                            
+                            if (results.length > 0) {
+                                var firmas = results[0].firmas;
+                                firmas = cambiarEstadoMatricula(firmas, req.session.matricula)
+                                const queryUpdate = 'UPDATE archivos SET firmas = ? WHERE name = ?'
+                                const firmasModificadas = [firmas,data.nombreArchivoSeleccionado]
+
+                                conn.query(queryUpdate, firmasModificadas, (err, result) => {                              
+                                    if (err) {
+                                      console.error("Error al actualizar el campo", err);
+                                      return res.status(500).send('Error al actualizar el campo');
+                                    }
+                              
+                                    if (result.affectedRows === 0) {
+                                      return res.status(404).send('Entrada no encontrada');
+                                    }
+                              
+                                    req.session.notifications = actualizarNotificaciones(req, res);
+                                });
+
+                            } else {
+                                console.log('No se encontraron resultados.');
+                            }
+                        });
                         res.redirect('/principal');
                     }else{
-                        console.log("Contraseña incorrecta");
+                        res.render('principal/firmar', {error: '* ERROR. Incorrect password.', name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula});
                     }
                 }else{
                     console.log("no hay nada");
@@ -338,6 +368,38 @@ function generatesignature(req, res){
         });
     }
 }
+
+function actualizarNotificaciones(req, res){
+    req.getConnection((err, conn) => {
+        if (err) {
+            console.error('Error connecting to the database:', err);
+            return res.status(500).send('Database connection error');
+        }
+        //aquí habría que hacer una de las comprobaciones de si ya firmó
+        conn.query('SELECT name,envia,firmas FROM archivos', (err, results) => {
+            if (err) {
+                console.error('Error fetching users from the database:', err);
+            }
+            let notifications = obtenerNotificaciones(results, req.session.matricula);
+            console.log(notifications);
+            req.session.notifications = notifications;
+            return notifications;
+        });
+    });
+}
+
+function removeExtension(filePath) {
+    const parsedPath = path.parse(filePath);
+    return parsedPath.name;
+}
+
+const cambiarEstadoMatricula = (cadena, matricula) => {
+    // Usar una expresión regular para encontrar y reemplazar el valor "no" por "si" para la matrícula específica
+    const regex = new RegExp(`(${matricula}:\\s*)no`, 'g');
+    const nuevaCadena = cadena.replace(regex, `$1si`);
+  
+    return nuevaCadena;
+  };
 
 async function removeSignaturesFromPDF(inputFilePath, outputFilePath) {
     try {

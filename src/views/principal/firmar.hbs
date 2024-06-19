@@ -1,9 +1,28 @@
 <div class="container-fluid h-100" style="padding: 10vh;">
     <div class="row h-100">
         <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4">
+            {{#if error}}
+                <!-- Mostrar el error utilizando JavaScript -->
+                <div id="customError" class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{error}}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <script>
+                    
+                    setTimeout(function() {
+                        var alert = document.getElementById('customError');
+                        if (alert) {
+                            alert.classList.add('hide');
+                            alert.addEventListener('transitionend', function() {
+                                alert.remove();
+                            }, { once: true });
+                        }
+                    }, 4000);
+                </script>
+            {{/if}}
             <div class="d-flex flex-column align-items-start">
-                <h4>Documentos por firmar</h4>
-                <p>Selecciona un documento</p>
+                <h4>Documents to sign</h4>
+                <p>Select a document</p>
                 <ul>
                     {{#each notifications}}
                         <li onclick="mostrarFormulario(this)" class="documento-item">{{this.name}}</li>
@@ -27,9 +46,8 @@
                 </div>
 
                 <div data-mdb-input-init class="form-outline mb-4">
-                    <input type="text" id="user" name="user" class="form-control form-control-lg" placeholder="Enter your employee ID" required oninput="validarMatricula(this)"/>
-                    <label class="form-label" for="user">Employee ID</label><br>
-                    <small id="matriculaError" class="text-danger"></small>
+                    <span style="font-size: 1.2rem; color: #333; font-weight: bold;">Employee ID: {{matricula}}</span>
+                    <input type="hidden" id="user" name="user" value="{{matricula}}">
                 </div>
 
                 <div data-mdb-input-init class="form-outline mb-4">
@@ -44,15 +62,18 @@
             </form>
             
             <div id="mensajeConfirmacion" class="alert alert-warning mt-3 d-none">
-                <p><strong>Confirmación:</strong> Al firmar este documento, usted acepta los términos y condiciones.</p>
-                <button class="btn btn-sm btn-success" onclick="firmarDocumento()">Firmar Ahora</button>
-                <button class="btn btn-sm btn-danger ms-2" onclick="cancelarFirma()">Cancelar</button>
+                <p><strong>Confirmation:</strong> By signing this document, you agree to the terms and conditions.</p>
+                <button class="btn btn-sm btn-success" onclick="firmarDocumento()">Sign Now</button>
+                <button class="btn btn-sm btn-danger ms-2" onclick="cancelarFirma()">Cancel</button>
             </div>
         </div>
     </div>
 </div>
 
 <script type="text/javascript" src="/js/firmar.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
 
 <style>
     .documento-item {
@@ -62,5 +83,19 @@
 
     .documento-item:hover {
         background-color: #f0f0f0;
+    }
+
+    .alert {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .alert.hide {
+        opacity: 0;
+        transform: translateY(-50px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
     }
 </style>
