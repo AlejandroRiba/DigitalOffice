@@ -27,12 +27,6 @@
                             <input type="hidden" id="source" name="source" value="{{matricula}}">
                         </div>
 
-                        {{!-- <div data-mdb-input-init class="form-outline mb-4">
-                            <input type="text" id="destiny" name="destiny" class="form-control form-control-lg" placeholder="quien envia" required oninput="validarMatricula(this)"/>
-                            <label class="form-label" for="destiny">Quien recibe</label><br>
-                            <small id="matriculaError" class="text-danger"></small>
-                        </div>
-
                         <label class="form-label" for="users">Select who will receive:</label><br>
                         <div class="form-check form-check-inline">
                             <input style="opacity: 0.5; cursor: not-allowed;" class="form-check-input" type="checkbox" id="user_{{matricula}}" name="users" value="{{matricula}}" checked disabled>
@@ -43,7 +37,7 @@
                                     <input class="form-check-input" type="checkbox" id="user_{{this.matricula}}" name="users" value="{{this.matricula}}">
                                     <label for="user_{{this.matricula}}">{{this.matricula}} - {{this.nombre}}</label>
                                 </div>
-                        {{/each}} --}}
+                        {{/each}}
 
                         <div class="text-center text-lg-start mt-4 pt-2">
                             <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg"

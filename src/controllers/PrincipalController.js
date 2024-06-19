@@ -70,8 +70,11 @@ function obtenerNotificaciones(results, req_matricula){
                     name: result.name,
                     matricula: result.envia
                 };
-                enviaValue.push(objeto);
-                break; 
+                
+                if(!enviaValue.includes(objeto)){
+                    enviaValue.push(objeto);
+                    break; 
+                }
             }
         }
     }
@@ -134,7 +137,21 @@ function uploadm(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        res.render('principal/subirmemo', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications});
+        const matricula = req.session.matricula;
+        req.getConnection((err, conn) => {
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                return res.status(500).send('Database connection error');
+            }
+    
+            conn.query('SELECT matricula, nombre FROM registros WHERE matricula != ?',[matricula], (err, users) => {
+                if (err) {
+                    console.error('Error fetching users from the database:', err);
+                }
+                req.session.users = users;
+                res.render('principal/subirmemo', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users});
+            });
+        });
     } 
 }
 
@@ -221,14 +238,22 @@ function uploadMemo(req, res) {
                 }
 
                 fs.writeFile(filePath, req.file.buffer, (err) => {
-
                     const data = req.body;
-                    const firmas = formatNames(data.source);
+                    const receives = data.users;
+                    console.log("Receives: ", receives)
+                    const firma = formatNames(req.session.matricula);
+                    // const values = [
+                    //     req.file.originalname,
+                    //     data.source,
+                    //     firmas,
+                    //     data.destiny,
+                    //     'Memo'
+                    // ];
                     const values = [
                         req.file.originalname,
                         data.source,
-                        firmas,
-                        data.destiny,
+                        firma,
+                        'N/A',
                         'Memo'
                     ];
                     req.getConnection((err, conn) => {
@@ -245,6 +270,100 @@ function uploadMemo(req, res) {
             .catch(err => {
                 console.error('Error al verificar el archivo:', err);
                 res.status(500).json({ error: 'Error al verificar el archivo' });
+            });
+    });
+}
+
+function uploadmConfidential(req, res){
+    if(req.session.loggedin != true){
+        res.redirect('/login');
+    } else{
+        const matricula = req.session.matricula;
+        req.getConnection((err, conn) => {
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                return res.status(500).send('Database connection error');
+            }
+    
+            conn.query('SELECT matricula, nombre FROM registros WHERE matricula != ?',[matricula], (err, users) => {
+                if (err) {
+                    console.error('Error fetching users from the database:', err);
+                }
+                req.session.users = users;
+                res.render('principal/subirmemoconf', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users});
+            });
+        });
+    } 
+}
+
+function uploadMemoConfidential(req, res) {
+    const tempUpload = multer({ storage: multer.memoryStorage() }).single('file');
+
+    tempUpload(req, res, function (err) {
+        if (err) {
+            console.error('Error during file upload:', err);
+            return res.status(500).json({ error: 'Error during file upload' });
+        }
+
+        const filePath = path.join(uploadDir, req.file.originalname);
+
+        checkFileExists(filePath)
+            .then(exists => {
+                if (exists) {
+                    if (req.session.loggedin != true) {
+                        return res.redirect('/login');
+                    } else {
+                        return res.render('principal/subirmemoconf', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists' });
+                    }
+                }
+
+                fs.writeFile(filePath, req.file.buffer, (err) => {
+                    if (err) {
+                        console.error('Error writing file:', err);
+                        return res.status(500).json({ error: 'Error writing file' });
+                    }
+
+                    const data = req.body;
+                    const receives = data.users;
+                    const firma = formatNames(req.session.matricula);
+
+                    let insertPromises = receives.map(receive => {
+                        let values = [
+                            req.file.originalname,
+                            data.source,
+                            firma,
+                            receive,
+                            'Conf'
+                        ];
+
+                        return new Promise((resolve, reject) => {
+                            req.getConnection((err, conn) => {
+                                if (err) {
+                                    return reject(err);
+                                }
+                                conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo) VALUES (?, ?, ?, ?, ?)', values, (err, result) => {
+                                    if (err) {
+                                        return reject(err);
+                                    }
+                                    resolve();
+                                });
+                            });
+                        });
+                    });
+
+                    Promise.all(insertPromises)
+                        .then(() => {
+                            res.redirect('/principal');
+                        })
+                        .catch(err => {
+                            console.error('Database query error:', err);
+                            res.status(500).json({ error: 'Database query error' });
+                        });
+                });
+            })
+            .catch(err => {
+                console.error('Error checking file existence:', err);
+                res.status(500).json({ error: 'Error checking file existence' });
             });
     });
 }
@@ -475,5 +594,7 @@ module.exports = {
     uploadMemo,
     uploadm,
     visualizar,
-    generateaes
+    generateaes,
+    uploadmConfidential,
+    uploadMemoConfidential
 }
