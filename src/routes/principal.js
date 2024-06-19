@@ -15,6 +15,8 @@ router.post('/uploadmconf', PrincipalController.uploadMemoConfidential);
 router.get('/firmar', PrincipalController.firmar);
 router.post('/firmar', PrincipalController.generatesignature);
 router.get('/visualizar', PrincipalController.visualizar);
+router.get('/alerta', PrincipalController.alerta);
+router.get('/downloadKey', PrincipalController.descargaclave);
 router.get('/verDocumentos', PrincipalController.verDocumentos);
 
 router.get('/download', function(req, res) {

@@ -71,23 +71,62 @@ function removePemHeaders(pem) {
     return base64Lines.join('');
 }
 
+function XOR_hex(a, b) {
+    const buffer1 = Buffer.from(a, 'hex');
+    const buffer2 = Buffer.from(b, 'hex');
+
+    // Obtener la longitud máxima entre los dos buffers
+    const maxLength = Math.max(buffer1.length, buffer2.length);
+
+    // Realizar la operación XOR a nivel de bits
+    let result = '';
+    for (let i = 0; i < maxLength; i++) {
+        const byte1 = i < buffer1.length ? buffer1[i] : 0;
+        const byte2 = i < buffer2.length ? buffer2[i] : 0;
+        const xorResult = byte1 ^ byte2;
+        result += xorResult.toString(16).padStart(2, '0'); // Convertir resultado a hexadecimal
+    }
+
+    return result;
+}
+
+// Función para cifrar
+function encrypt(text, keyBuffer, iv) {
+    const cipher = crypto.createCipheriv('aes-256-ctr', keyBuffer, iv);
+    let encrypted = cipher.update(text, 'base64', 'base64'); 
+    encrypted += cipher.final('base64');
+    return encrypted;
+}
+
+function protectkey(usuario, password, privateKey){
+    const usr = hashPassword(usuario);
+    const pss = hashPassword(password);
+    const iv = crypto.randomBytes(16);
+    const key = XOR_hex(usr,pss);
+    const keyBuffer = Buffer.from(key, 'hex');
+    const encryptedText = encrypt(privateKey, keyBuffer, iv);
+    const privtofile = iv.toString('base64') + encryptedText;
+    return privtofile;
+    //prueba de recuperación
+    /* const [iv1, textoc] = splitString(privtofile);
+    console.log('',iv1.toString('base64'));
+    const ivbuff = Buffer.from(iv1, 'base64');
+    const decrypText = decrypt(textoc, keyBuffer, ivbuff);
+    console.log('Recuperado : ',decrypText); */
+}
+
 function storeUser(req, res) {
     const data = req.body;
     const hashedPassword = hashPassword(data.contras);
-    const hashedUser = hashPassword(data.matricula);
-    data.contras = hashedPassword;
     const {publicKey, privateKey} = generateUniqueKeyPair();
-    const newpublicKey = removePemHeaders(publicKey);
-    const newprivateKey = removePemHeaders(privateKey);
-    console.log(newprivateKey);
     const userData = {
         matricula: data.matricula,
-        password: data.contras,
+        password: hashedPassword,
         nombre: data.fsname,
         apellidos: data.lsname,
         email: data.email,
         cargo: data.cargo,
-        firma: newpublicKey
+        firma: publicKey
     };
 
     req.getConnection((err, conn) => {
@@ -95,41 +134,28 @@ function storeUser(req, res) {
             if(datos.length > 0) {
                 res.render('login/register', {error: '* ERROR User alredy exists.'});
             } else {
-                req.getConnection((err, conn) => {
+                const query = 'INSERT INTO registros (matricula, password, nombre, apellidos, email, cargo, firma) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                const values = [
+                    userData.matricula,
+                    userData.password,
+                    userData.nombre,
+                    userData.apellidos,
+                    userData.email,
+                    userData.cargo,
+                    userData.firma
+                ];
+
+                conn.query(query, values, (err, result) => {
                     if (err) {
-                        console.error('Database connection error:', err);
+                        console.error('Query error:', err);
                         return;
                     }
-                    const query = 'INSERT INTO registros (matricula, password, nombre, apellidos, email, cargo, firma) VALUES (?, ?, ?, ?, ?, ?, ?)';
-                    const values = [
-                        userData.matricula,
-                        userData.password,
-                        userData.nombre,
-                        userData.apellidos,
-                        userData.email,
-                        userData.cargo,
-                        userData.firma
-                    ];
-
-                    conn.query(query, values, (err, result) => {
-                        if (err) {
-                            console.error('Query error:', err);
-                            return;
-                        }
-
-                        const query1 = 'INSERT INTO private (usuario, password, `key`) VALUES (?, ?, ?)';
-                        const values2 = [hashedUser, userData.password, newprivateKey]
-                        conn.query(query1, values2, (err, result) => {
-                            if (err) {
-                                console.error('Query error:', err);
-                                return;
-                            }
-                        });
-                        req.session.loggedin = true;
-                        req.session.name = userData.nombre;
-                        req.session.matricula = userData.matricula;
-                        res.redirect('/principal');
-                    });
+                    const privtofile = protectkey(userData.matricula, data.contras, privateKey);
+                    req.session.loggedin = true;
+                    req.session.name = userData.nombre;
+                    req.session.matricula = userData.matricula;
+                    req.session.protectKey = privtofile;
+                    res.redirect('/alerta');
                 });
             }
         });

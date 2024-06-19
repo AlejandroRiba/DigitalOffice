@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { fileLoader } = require('ejs');
 const { PDFDocument, rgb } = require('pdf-lib');
+const MemoryStream = require('memorystream');
 
 
 // Directorio donde se guardarán los archivos subidos
@@ -35,7 +36,11 @@ const checkFileExists = (filePath) => {
 function principal(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
-    } else{
+    } else if (req.session.protectKey && req.session.protectKey.trim() !== ''){// protectKey no está vacío aún
+        // Limpiar la sesión después de la descarga para asegurar que no se pueda descargar nuevamente
+        delete req.session.protectKey;
+        res.redirect('/principal');
+    }else{
         req.getConnection((err, conn) => {
             if (err) {
                 console.error('Error connecting to the database:', err);
@@ -80,6 +85,20 @@ function obtenerNotificaciones(results, req_matricula){
         }
     }
     return enviaValue;
+}
+
+function alerta(req, res){
+    if(req.session.loggedin != true){
+        res.redirect('/login');
+    } else if (req.session.protectKey && req.session.protectKey.trim() !== '') {
+        // protectKey no está vacío
+        res.render('principal/alerta', {
+            protectKey: req.session.protectKey
+        });
+    } else {
+        // protectKey está vacío
+        res.redirect('/principal');
+    }
 }
 
 function visualizar(req, res){
@@ -616,6 +635,42 @@ function checkIfFileExists(filePath) {
     }
 }
 
+//Función para descifrar
+function decrypt(encryptedHex, keyBuffer, ivBuffer) {
+    const decipher = crypto.createDecipheriv('aes-256-ctr', keyBuffer, ivBuffer);
+    let decrypted = decipher.update(encryptedHex, 'base64', 'base64');
+    decrypted += decipher.final('base64');
+    return decrypted;
+}
+
+function splitString(str) {
+    const firstPart = str.slice(0, 24);  // Obtener los primeros 24 caracteres
+    const secondPart = str.slice(24);    // Obtener el resto de la cadena
+    
+    return [firstPart, secondPart];
+}
+
+function descargaclave(req, res){
+    const protectKeyResult = req.session.protectKey;
+
+    if (!protectKeyResult) {
+        return res.status(404).send('Archivo no encontrado');
+    }
+
+    // Crear un stream de memoria para almacenar la cadena de texto
+    const stream = new MemoryStream();
+    stream.write(protectKeyResult);
+    stream.end();
+
+    // Configurar la respuesta HTTP para descargar el archivo
+    const filename = `${req.session.matricula}_key.bin`;
+    res.setHeader('Content-disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-type', 'text/plain');
+
+    // Pipe el contenido del stream de memoria a la respuesta HTTP
+    stream.pipe(res);
+}
+
 function generateaes(req, res){
     const data = req.body;
     const usr = hashPassword(data.user);
@@ -657,5 +712,6 @@ module.exports = {
     generateaes,
     uploadmConfidential,
     uploadMemoConfidential,
-    verDocumentos
+    alerta,
+    descargaclave,
 }

@@ -1,0 +1,75 @@
+<div>
+    <style>
+        /* Default height for small devices */
+        #intro-example {
+            height: 400px;
+        }
+
+        /* Height for devices larger than 992px */
+        @media (min-width: 992px) {
+            #intro-example {
+                height: 600px;
+            }
+        }
+    </style>
+        <!-- Background image -->
+        <div
+            id="intro-example"
+            class="p-5 text-center bg-image"
+            style="background: white; background-size: cover; height: 100vh; background-repeat: no-repeat; background-position:center;">
+            <div class="mask" style="background-color: rgba(0, 0, 0, 0.5); padding: 10vh; border-radius: 10px;">
+                <div class="d-flex justify-content-center align-items-center h-100">
+                    <div class="text-white">
+                        <!-- Pantalla grande -->
+                        <h1 class="mb-3 d-none d-md-block">WARNING</h1> 
+                        <!-- Pantalla chica -->
+                        <h3 class="mb-3 d-block d-md-none">WARNING</h3>
+                        <div class="d-none d-md-block">
+                            <br><br>
+                        </div>
+                        <!-- Pantalla grande -->
+                        <h5 class="mb-4 d-none d-md-block">This key is unique and you must keep it very carefully.
+                                If you lose it, it cannot be recovered in any way.</h5>
+                        <!-- Pantalla chica -->
+                        <p class="mb-4 d-block d-md-none" style="font-size: 16px">This key is unique and you must keep it very carefully.
+                            If you lose it, it cannot be recovered in any way.</p>
+                        <div class="d-none d-md-block">
+                            <br><br>
+                        </div>
+                        <!-- Botones en la misma línea -->
+                        <div class="d-flex justify-content-center">
+                            <!-- Pantalla grande -->
+                            <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
+                                href="/downloadKey"
+                                role="button"
+                                rel="nofollow"
+                            >Download Key</a>
+                            <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
+                                href="/principal"
+                                role="button"
+                                rel="nofollow"
+                            >Go to Main</a>
+                            <!-- Pantalla chica -->
+                            <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-lg m-2 d-block d-md-none"
+                                href="/downloadKey"
+                                role="button"
+                                rel="nofollow"
+                            >Download Key</a>
+                            <a
+                                data-mdb-ripple-init
+                                class="btn btn-outline-light btn-lg m-2 d-block d-md-none"
+                                href="/principal"
+                                role="button"
+                                rel="nofollow"
+                            >Go to Main</a>
+                     </div>
+             </div>
+         </div>
+    </div>
+</div>
