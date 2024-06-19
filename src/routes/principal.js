@@ -10,6 +10,8 @@ router.get('/uploadf', PrincipalController.uploadf);
 router.post('/uploadf', PrincipalController.uploadMinut);
 router.get('/uploadm', PrincipalController.uploadm);
 router.post('/uploadm', PrincipalController.uploadMemo);
+router.get('/uploadmconf', PrincipalController.uploadmConfidential);
+router.post('/uploadmconf', PrincipalController.uploadMemoConfidential);
 router.get('/firmar', PrincipalController.firmar);
 router.post('/firmar', PrincipalController.generatesignature);
 router.get('/visualizar', PrincipalController.visualizar);
