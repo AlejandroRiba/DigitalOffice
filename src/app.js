@@ -50,6 +50,9 @@ app.listen(app.get('port'), () => {
 
 app.get('/', (req, res) => { //ruta raíz
     if(req.session.loggedin == true){
+        if (req.session.protectKey && req.session.protectKey.trim() !== '') {
+            delete req.session.protectKey; //si la sesión esta iniciada y cambió de página, se borra el nombre del arch. temporal.
+        }
         res.render('principal/index', {name: req.session.name, notifications: req.session.notifications});
     } else{
         res.render('home');

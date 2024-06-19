@@ -20,53 +20,58 @@
               {{#if name}}
                 <li class="notification-icon">
                     {{#if notifications.length}}
-                      <a href="#"><i class="fas fa-bell"></i></a><span style="color: rgb(255, 38, 0); margin-bottom:12px; font-size:34px">•</span>
-                      <div class="notification-content">
-                      {{#each notifications}}
-                        <a href="/firmar">Se requiere tu firma en la minuta {{this.name}} subida por {{this.matricula}}.</a>
-                      {{/each}}
-                      </div>
+                        <a href="#"><i class="fas fa-bell"></i></a><span style="color: rgb(255, 38, 0); margin-bottom:12px; font-size:34px">•</span>
+                        <div class="notification-content">
+                            {{#each notifications}}
+                                <a href="/firmar">Se requiere tu firma en la minuta {{this.name}} subida por {{this.matricula}}.</a>
+                            {{/each}}
+                        </div>
                     {{else}}
-                      <a href="#"><i class="fa-regular fa-bell"></i></a>
-                      <div class="notification-content">
-                        <a href="/">No tienes documentos por firmar.</a>
-                      </div>
+                        <a href="#"><i class="fa-regular fa-bell"></i></a>
+                        <div class="notification-content">
+                            <a href="/">No tienes documentos por firmar.</a>
+                        </div>
                     {{/if}}
                 </li>
                 <span>&nbsp;&nbsp;</span>
                 <li class="dropdown">
-                      <a class="btn btn-outline-light btn-lg m-2"
-                          style="border-width: 2px;"
-                          role="button"
-                          rel="nofollow"
-                          data-mdb-ripple-init>Menu</a>
-                      <div class="dropdown-content" aria-labelledby="navbarDropdown">
-                          <a href="/uploadf"> * Subir minuta </a>
-                          <a href="/uploadm"> * Subir memorando </a>
-                          <a href="/visualizar"> * Visualizar archivos </a>
-                      </div>
+                    <a class="btn btn-outline-light btn-lg m-2"
+                        style="border-width: 2px;"
+                        role="button"
+                        rel="nofollow"
+                        data-mdb-ripple-init>Menu</a>
+                    <div class="dropdown-content" aria-labelledby="navbarDropdown">
+                        <a href="/uploadf"> * Subir minuta </a>
+                        <a href="/uploadm"> * Subir memorando </a>
+                        <a href="/visualizar"> * Visualizar archivos </a>
+                    </div>
                 </li>
                 <span>&nbsp;&nbsp;</span>
                 <li><a class="btn btn-lg m-2"
-                          style="border-color: rgb(171, 205, 255); border-width: 2px;"
-                          href="/logout"
-                          role="button"
-                          rel="nofollow"
-                          data-mdb-ripple-init>Logout</a></li>
+                        style="border-color: rgb(171, 205, 255); border-width: 2px;"
+                        href="/logout"
+                        role="button"
+                        rel="nofollow"
+                        data-mdb-ripple-init>Logout</a></li>
                 <li> </li>
               {{else}}
-                   <li><a class="btn btn-outline-light btn-lg m-2"
-                          style="border-width: 2px;"
-                          href="/login"
-                          role="button"
-                          rel="nofollow">Sign in</a></li>
-                    <li><a class="btn btn-outline-light btn-lg m-2"
-                          style="border-width: 2px;"
-                          href="/register"
-                          role="button"
-                          data-mdb-ripple-init>Sign up</a></li>
-                    <li></li>
-                {{/if}}
+                  {{#if protectKey}} <!-- Si va a descargar su clave, que no lo lleve a nunguna otra página-->
+                      <li></li>
+                  {{else}}
+                      <li><a class="btn btn-outline-light btn-lg m-2"
+                              style="border-width: 2px;"
+                              href="/login"
+                              role="button"
+                              rel="nofollow">Sign in</a></li>
+                      <li><a class="btn btn-outline-light btn-lg m-2"
+                              style="border-width: 2px;"
+                              href="/register"
+                              role="button"
+                              data-mdb-ripple-init>Sign up</a></li>
+                      <li></li>
+                  {{/if}}
+              {{/if}}
+
                 </ul>
             </nav>
     </header>
