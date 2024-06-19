@@ -714,4 +714,5 @@ module.exports = {
     uploadMemoConfidential,
     alerta,
     descargaclave,
+    verDocumentos
 }

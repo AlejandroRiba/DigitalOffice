@@ -19,6 +19,8 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
 
+app.use('/archivos', express.static(uploadDir));
+
 app.set('views', __dirname + '/views');
 app.engine('.hbs', engine({
     extname: '.hbs',
@@ -33,7 +35,7 @@ app.use(bodyParser.json());
 app.use(myConnection(mysql, {
     host: 'localhost',
     user: 'root',
-    password: '',
+    password: 'root',
     port: '3306',
     database: 'employees'
 }));
