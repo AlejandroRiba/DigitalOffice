@@ -385,7 +385,7 @@ async function generateAesKey(req) {
             conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, result) => {
                 if (err) return reject(err);
                 if (!result.length) return reject(new Error('No se encontró el registro'));
-                const key128 = crypto.randomBytes(16);
+                const key128 = crypto.randomBytes(32);
                 resolve(key128);
             });
         });
@@ -393,7 +393,7 @@ async function generateAesKey(req) {
 }
 
 function encryptFile(buffer, aesKey) {
-    const iv = crypto.randomBytes(16); // AES-CTR no usa IV, pero usaremos para compatibilidad
+    const iv = crypto.randomBytes(16); // Generar un IV de 16 bytes
     const cipher = crypto.createCipheriv('aes-256-ctr', aesKey, iv);
     let encrypted = cipher.update(buffer);
     encrypted = Buffer.concat([encrypted, cipher.final()]);
