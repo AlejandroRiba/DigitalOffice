@@ -1,70 +1,72 @@
-<div class="container-fluid h-100" style="padding: 10vh;">
-    <div class="row h-100">
-        <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #ccc;">
-            {{#if error}}
-                <!-- Mostrar el error utilizando JavaScript -->
-                <div id="customError" class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{error}}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div style="height: 180vh;">
+    <div class="container-fluid" style="padding: 10vh;">
+        <div class="row" style="height: 160vh;">
+            <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #ccc;">
+                {{#if error}}
+                    <!-- Mostrar el error utilizando JavaScript -->
+                    <div id="customError" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{error}}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <script>
+                        
+                        setTimeout(function() {
+                            var alert = document.getElementById('customError');
+                            if (alert) {
+                                alert.classList.add('hide');
+                                alert.addEventListener('transitionend', function() {
+                                    alert.remove();
+                                }, { once: true });
+                            }
+                        }, 4000);
+                    </script>
+                {{/if}}
+                <div class="d-flex flex-column align-items-start">
+                    <h4>Documents to sign</h4>
+                    <p>Select a document</p>
+                    <ul>
+                        {{#each notifications}}
+                            <li onclick="mostrarFormulario(this)" class="documento-item">{{this.name}}</li>
+                        {{/each}}
+                    </ul>
                 </div>
-                <script>
-                    
-                    setTimeout(function() {
-                        var alert = document.getElementById('customError');
-                        if (alert) {
-                            alert.classList.add('hide');
-                            alert.addEventListener('transitionend', function() {
-                                alert.remove();
-                            }, { once: true });
-                        }
-                    }, 4000);
-                </script>
-            {{/if}}
-            <div class="d-flex flex-column align-items-start">
-                <h4>Documents to sign</h4>
-                <p>Select a document</p>
-                <ul>
-                    {{#each notifications}}
-                        <li onclick="mostrarFormulario(this)" class="documento-item">{{this.name}}</li>
-                    {{/each}}
-                </ul>
             </div>
-        </div>
-        <div class="col-md-8 col-lg-8 col-xl-8 form-section">
-            <form method="POST" action="" onsubmit="return mostrarConfirmacion()" id="formContainer" style="display: none;">
-                <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
-                    <h1><em>Sign your document</em></h1>
-                </div>
+            <div class="col-md-8 col-lg-8 col-xl-8 form-section">
+                <form method="POST" action="" onsubmit="return mostrarConfirmacion()" id="formContainer" style="display: none;">
+                    <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
+                        <h1><em>Sign your document</em></h1>
+                    </div>
 
-                <div class="divider d-flex align-items-center my-4">
-                    <p class="text-center fw-bold mx-3 mb-2"></p>
-                </div>
+                    <div class="divider d-flex align-items-center my-4">
+                        <p class="text-center fw-bold mx-3 mb-2"></p>
+                    </div>
 
-                <div data-mdb-input-init class="form-outline mb-4">
-                    <span id="nombreArchivoSeleccionado" style="font-size: 1.2rem; color: #333; font-weight: bold;"></span>
-                    <input type="hidden" id="nombreArchivoSeleccionadoInput" name="nombreArchivoSeleccionado">
-                </div>
+                    <div data-mdb-input-init class="form-outline mb-4">
+                        <span id="nombreArchivoSeleccionado" style="font-size: 1.2rem; color: #333; font-weight: bold;"></span>
+                        <input type="hidden" id="nombreArchivoSeleccionadoInput" name="nombreArchivoSeleccionado">
+                    </div>
 
-                <div data-mdb-input-init class="form-outline mb-4">
-                    <span style="font-size: 1.2rem; color: #333; font-weight: bold;">Employee ID: {{matricula}}</span>
-                    <input type="hidden" id="user" name="user" value="{{matricula}}">
-                </div>
+                    <div data-mdb-input-init class="form-outline mb-4">
+                        <span style="font-size: 1.2rem; color: #333; font-weight: bold;">Employee ID: {{matricula}}</span>
+                        <input type="hidden" id="user" name="user" value="{{matricula}}">
+                    </div>
 
-                <div data-mdb-input-init class="form-outline mb-4">
-                    <input type="password" id="confcontra" name="confcontra" class="form-control form-control-lg" placeholder="Password required" required />
-                    <label class="form-label" for="confcontra">Confirm Password</label><br>
-                </div>
+                    <div data-mdb-input-init class="form-outline mb-4">
+                        <input type="password" id="confcontra" name="confcontra" class="form-control form-control-lg" placeholder="Password required" required />
+                        <label class="form-label" for="confcontra">Confirm Password</label><br>
+                    </div>
 
-                <div class="text-center text-lg-start mt-4 pt-2">
-                    <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem; background: #06547E;">Sign Document</button>
-                </div>
+                    <div class="text-center text-lg-start mt-4 pt-2">
+                        <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg" style="padding-left: 2.5rem; padding-right: 2.5rem; background: #06547E;">Sign Document</button>
+                    </div>
 
-            </form>
-            
-            <div id="mensajeConfirmacion" class="alert-warning mt-3 d-none" style="padding: 20px;">
-                <p><strong>Confirmation:</strong> By signing this document, you agree to the terms and conditions.</p>
-                <button class="btn btn-sm btn-success" onclick="firmarDocumento()">Sign Now</button>
-                <button class="btn btn-sm btn-danger ms-2" onclick="cancelarFirma()">Cancel</button>
+                </form>
+                
+                <div id="mensajeConfirmacion" class="alert-warning mt-3 d-none" style="padding: 20px;">
+                    <p><strong>Confirmation:</strong> By signing this document, you agree to the terms and conditions.</p>
+                    <button class="btn btn-sm btn-success" onclick="firmarDocumento()">Sign Now</button>
+                    <button class="btn btn-sm btn-danger ms-2" onclick="cancelarFirma()">Cancel</button>
+                </div>
             </div>
         </div>
     </div>

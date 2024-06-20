@@ -567,12 +567,14 @@ function verifySignature(message, signature, publicKey) {
 
 // Función para verificar el documento firmado
 function verifySignedDocument(documentContent, signatureDoc, publicKey) {
-    // Separar el contenido del documento y la firma
-    const signature = signatureDoc.replace('-SIGNATURE-', '').trim();
     // Calcular el hash del contenido del documento
     const documentHash = calculateHash(documentContent);
-    // Verificar la firma
-    return verifySignature(documentHash, signature, publicKey);
+    for (let signature of signatureDoc) {
+        if (verifySignature(documentHash, signature, publicKey)) {
+            return true;  // Devuelve true y sale de la función en cuanto encuentre una coincidencia válida
+        }
+    }
+    return false;  // Si no se encuentra ninguna coincidencia válida, devuelve false
 }
 
 function addPemHeaders(base64, type) {
@@ -920,19 +922,27 @@ function pruebafirm(req, res) {
             // Definir la ruta de lectura de firmas dependiendo de la ruta de lectura del doc usada
             if (filePathToUse === filePath1) {
                 filePathPriv = 'src/firmas/' + removeExtension(nombreDocumento) + '.txt';
+                try {
+                    dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
+                } catch (err) {
+                    console.error('Error al leer el archivo de firmas:', err);
+                    return res.status(404).send('Archivo de firmas no encontrado');
+                }
             } else {
                 filePathPriv = 'src/firmasCifradas/' + removeExtension(nombreDocumento) + '.txt';
-            }
-
-            try {
-                dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
-            } catch (err) {
-                console.error('Error al leer el archivo de firmas:', err);
-                return res.status(404).send('Archivo de firmas no encontrado');
+                try {
+                    dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
+                    //dataFirmas = decrypt  AQUI HAY QUE HACER EL AJUSTE PARA QUE SE MANDE A LLAMAR A LA FUNCIÓN DE DESCIFRADO
+                } catch (err) {
+                    console.error('Error al leer el archivo de firmas:', err);
+                    return res.status(404).send('Archivo de firmas no encontrado');
+                }
             }
 
             let firmasValidas = true;
-
+            const dataFirmasArray = dataFirmas.split('-SIGNATURE-');
+            dataFirmasArray.shift()
+            console.log(dataFirmasArray);
             const firmasArray = results[0].firmas.split(','); // Suponiendo que las firmas estén separadas por comas
             const verificarFirmas = firmasArray.map(firma => {
                 const [matricula, status] = firma.trim().split(':');
@@ -944,7 +954,7 @@ function pruebafirm(req, res) {
                                 return reject('Error en la consulta');
                             }
                             const publicKey = consulta[0];
-                            if (!verifySignedDocument(dataDocument, dataFirmas, publicKey.firma)) { // si da un false, sería documento corrupto
+                            if (!verifySignedDocument(dataDocument, dataFirmasArray, publicKey.firma)) { // si da un false, sería documento corrupto
                                 firmasValidas = false;
                             }
                             resolve();
