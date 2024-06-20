@@ -6,7 +6,7 @@
                 class="img-fluid" alt="Sample image">
             </div>
             <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
-              <form method="POST" action="">
+              <form method="POST" action=""  enctype="multipart/form-data">
                 <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                   <p class="lead fw-normal mb-0 me-3">Sign in with your account</p>
                 </div>
@@ -22,7 +22,10 @@
                   <label class="form-label" for="usuario">Email or employee ID</label><br>
                   <small id="usrError" class="text-danger"></small>
                 </div>
-      
+                <div data-mdb-input-init class="form-outline mb-4">
+                  <input type="file" id="file" name="file" class="form-control form-control-lg" required/>
+                  <label class="form-label" for="file">Key Document</label>
+                </div>
                 <!-- Password input -->
                 <div data-mdb-input-init class="form-outline mb-3">
                   <input type="password" id="contras" name="contras" class="form-control form-control-lg"

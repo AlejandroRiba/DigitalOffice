@@ -1,5 +1,24 @@
 const crypto = require('crypto');
 const { use } = require('../routes/principal');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+
+// Directorio donde se guardarán los archivos subidos
+const uploadDir = path.join(__dirname, '../archivos');
+
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
+
+const storage = multer.diskStorage({
+    destination: uploadDir,
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
+    }
+});
+
+const upload = multer({ storage }).single('file');
 
 function login(req, res) {
     if(req.session.loggedin != true){
@@ -10,24 +29,37 @@ function login(req, res) {
 }
 
 function auth(req, res){
-    const data = req.body;
-    req.getConnection((err, conn) => {
-        conn.query('SELECT * FROM registros WHERE matricula = ? OR email = ?', [data.usuario, data.usuario], (err, datos) => {
-            if(datos.length > 0) {
-              const user = datos[0];
-              if(comparePasswords(data.contras, user.password)){
-                req.session.loggedin = true;
-                req.session.name = user.nombre;
-                req.session.matricula = user.matricula;
-
-                res.redirect('/principal');
-
-              } else{
-                res.render('login/index', {error: '* ERROR. Incorrect password.'});
-              }
-            } else {
-                res.render('login/index', {error: '* ERROR. User not exists.'});
-            }
+    upload(req, res, function (err) {
+        const filePath = path.join(uploadDir, req.file.originalname);
+        console.log(filePath);
+        fs.readFile(filePath, 'utf8', (err, filedata) => {
+            // Aquí procesas el contenido del archivo
+            fs.unlink(filePath, (err) => {
+                const data = req.body;
+                req.getConnection((err, conn) => {
+                    conn.query('SELECT * FROM registros WHERE matricula = ? OR email = ?', [data.usuario, data.usuario], (err, datos) => {
+                        if(datos.length > 0) {
+                            const user = datos[0];
+                            if(comparePasswords(data.contras, user.password)){
+                                if(comparePasswords(filedata, user.comproba)){
+                                    req.session.loggedin = true;
+                                    req.session.name = user.nombre;
+                                    req.session.matricula = user.matricula;
+                                    req.session.privateKey = filedata; //tenemos la private key cifrada, no la guardamos en plano
+                                    
+                                    res.redirect('/principal');
+                                }else{
+                                    res.render('login/index', {error: '* ERROR. This is not your key.'});
+                                }
+                            } else{
+                                res.render('login/index', {error: '* ERROR. Incorrect password.'});
+                            }
+                        } else {
+                            res.render('login/index', {error: '* ERROR. User not exists.'});
+                        }
+                    });
+                });
+            });
         });
     });
 }
@@ -103,16 +135,11 @@ function protectkey(usuario, password, privateKey){
     const pss = hashPassword(password);
     const iv = crypto.randomBytes(16);
     const key = XOR_hex(usr,pss);
+    const final = removePemHeaders(privateKey);
     const keyBuffer = Buffer.from(key, 'hex');
-    const encryptedText = encrypt(privateKey, keyBuffer, iv);
+    const encryptedText = encrypt(final, keyBuffer, iv);
     const privtofile = iv.toString('base64') + encryptedText;
     return privtofile;
-    //prueba de recuperación
-    /* const [iv1, textoc] = splitString(privtofile);
-    console.log('',iv1.toString('base64'));
-    const ivbuff = Buffer.from(iv1, 'base64');
-    const decrypText = decrypt(textoc, keyBuffer, ivbuff);
-    console.log('Recuperado : ',decrypText); */
 }
 
 function storeUser(req, res) {
@@ -155,6 +182,7 @@ function storeUser(req, res) {
                     req.session.name = userData.nombre;
                     req.session.matricula = userData.matricula;
                     req.session.protectKey = privtofile;
+                    req.session.privateKey = privtofile;
                     res.redirect('/alerta');
                 });
             }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" style="scroll-behavior: smooth;">
+<html lang="en" style="scroll-behavior: smooth;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,6 +17,14 @@
       <div class="navbar-brand" style="font-size: 30px"><a href="/" style="text-decoration: none; color: white"><img src="/img/header.png" width="120px" style="padding: 20px; margin-left:20px">Digital Office</a></div><br><br><br>
        <nav class="nav">
             <ul>
+              {{#if privateKey}}
+                <li class="notification-icon">
+                    <a href="/"><i class="fas fa-key"></i></a>
+                    <div class="notification-content">
+                        <a href="/">Your private key is activated</a>
+                    </div>
+                    <span>&nbsp;&nbsp;</span>
+              {{/if}}
               {{#if name}}
                 <li class="notification-icon">
                     {{#if notifications.length}}

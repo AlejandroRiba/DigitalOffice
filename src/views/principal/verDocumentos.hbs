@@ -1,38 +1,81 @@
-<div class="container-fluid h-100" style="padding: 10vh;">
-    <div class="row h-100">
-        <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4">
-            {{#if error}}
-                <!-- Mostrar el error utilizando JavaScript -->
-                <div id="customError" class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{error}}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div style="height: 180vh;">
+    <div class="container-fluid" style="padding: 10vh;">
+        <div class="row" style="height: 160vh;">
+            <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #ccc;">
+                <div class="d-flex flex-column align-items-start">
+                    <h4>Documents</h4>
+                    <p>Select a document</p>
+                    <ul>
+                        {{#each documents}}
+                            <!-- Aquí en lugar de llamar a una función para mostrar el formulario, se debe cargar el documento en un iframe -->
+                            <li onclick="cargarDocumento(this)" class="documento-item" data-firmas="{{this.firmas}}" id="{{this.name}}">{{this.name}}</li>
+                        {{/each}}
+                    </ul>
                 </div>
-                <script>
-                    setTimeout(function() {
-                        var alert = document.getElementById('customError');
-                        if (alert) {
-                            alert.classList.add('hide');
-                            alert.addEventListener('transitionend', function() {
-                                alert.remove();
-                            }, { once: true });
-                        }
-                    }, 4000);
-                </script>
-            {{/if}}
-            <div class="d-flex flex-column align-items-start">
-                <h4>Documents to sign</h4>
-                <p>Select a document</p>
-                <ul>
-                    {{#each documents}}
-                        <!-- Aquí en lugar de llamar a una función para mostrar el formulario, se debe cargar el documento en un iframe -->
-                        <li onclick="cargarDocumento(this)" class="documento-item">{{this}}</li>
-                    {{/each}}
-                </ul>
             </div>
-        </div>
-        <div class="col-md-8 col-lg-8 col-xl-8 form-section">
-            <!-- Aquí se muestra el iframe que cargará el documento -->
-            <iframe id="documentoFrame" src="/archivos/GCM.pdf" style="width: 100%; height: 80vh; border: none;"></iframe>
+            <div class="col-md-5 col-lg-5 col-xl-7 form-section d-flex flex-column" style="background-color: aliceblue; padding: 5vh; border: 1px black solid;">
+                <!-- Aquí se muestra el iframe que cargará el documento -->
+                {{#if nombreArch}}
+                    <div id="executeContainer" data-should-execute="{{nombreArch}}" style="display: none;">
+                            <!-- contenido -->
+                    </div>
+                    <iframe id="documentoFrame" src="/archivos/{{nombreArch}}" data-nombre="{{nombreArch}}" style="width: 100%; height: 100%; border: none;"></iframe>
+                {{else}}
+                    <iframe id="documentoFrame" src="" data-nombre="archivo" style="width: 100%; height: 100%; border: none;"></iframe>
+                {{/if}}
+            </div>
+            <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #ccc;">
+                <div class="d-flex flex-column align-items-start">
+                    <h4>Signatues</h4>
+                    <p>Signatures required</p>
+                    <div>
+                        <h5>Firmas completadas</h5>
+                        <ul id="firmasCompletadasList">
+                            <!-- Aquí se actualizarán las firmas completadas -->
+                        </ul>
+                        <h5>Firmas pendientes</h5>
+                        <ul id="firmasPendientesList">
+                            <!-- Aquí se actualizarán las firmas pendientes -->
+                        </ul>
+                    </div>
+                    {{#if message}}
+                        <!-- Mostrar el error utilizando JavaScript -->
+                        <div id="customMess" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            {{message}}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        <form action="/prueba" method="POST">
+                            <input type="hidden" id="nombreArchivo" name="nombreArchivo" style="display: none;" value="{{nombreArch}}">
+                            <button class="btn btn-primary btn-lg m-2"
+                                type="submit"
+                                id="botonVerf"
+                                role="button">Verificar firmas</button>
+                        </form>
+                        <script>
+                            setTimeout(function() {
+                                var alert = document.getElementById('customMess');
+                                if (alert) {
+                                    console.log(firmas);
+                                    alert.classList.add('hide');
+                                    alert.addEventListener('transitionend', function() {
+                                        alert.remove();
+                                    }, { once: true });
+                                }
+                            }, 4000);
+
+                        </script>
+                    {{else}}
+                        <form action="/prueba" method="POST">
+                            <input type="hidden" id="nombreArchivo" name="nombreArchivo" style="display: none;">
+                            <button class="btn btn-primary btn-lg m-2"
+                                type="submit"
+                                id="botonVerf"
+                                style="display: none;"
+                                role="button">Verificar firmas</button>
+                            </form>
+                    {{/if}}
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -41,7 +84,10 @@
     function cargarDocumento(element) {
         var nombreDocumento = element.textContent.trim(); // Obtener el nombre del documento
         var urlDocumento = obtenerURLDocumento(nombreDocumento); // Obtener la URL del documento según su nombre
+        var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
         console.log("Cargando documento:", urlDocumento); // Log para verificar la URL generada
+        console.log("Firmas:", firmas); // Log para verificar las firmas
+        document.getElementById('nombreArchivo').value = nombreDocumento;
         
         var iframe = document.getElementById('documentoFrame');
         iframe.src = urlDocumento; // Cargar el documento en el iframe
@@ -53,10 +99,14 @@
         iframe.onerror = function() {
             console.error("Error al cargar el documento:", urlDocumento);
         };
+
+        actualizarFirmas(firmas);
+        mostrarOcultarElemento();
     }
 
     function obtenerURLDocumento(nombreDocumento) {
         // Aquí puedes ajustar la lógica para generar la URL si es necesario
         return 'archivos/' + nombreDocumento;
     }
+
 </script>

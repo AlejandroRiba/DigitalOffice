@@ -11,9 +11,14 @@ const MemoryStream = require('memorystream');
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
+const firmasDir = path.join(__dirname, '../firmas');
 
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
+}
+
+if (!fs.existsSync(firmasDir)) {
+    fs.mkdirSync(firmasDir);
 }
 
 const storage = multer.diskStorage({
@@ -53,7 +58,9 @@ function principal(req, res){
                 }
                 let notifications = obtenerNotificaciones(results, req.session.matricula);
                 req.session.notifications = notifications;
-                res.render('principal/index', {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula});
+                delete req.session.message;
+                delete req.session.doc;
+                res.render('principal/index', {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
             });
         });
     } 
@@ -117,7 +124,9 @@ function visualizar(req, res){
                 }
                 const minutas = archivos.filter(archivo => archivo.tipo === 'Min');
                 const memorandos = archivos.filter(archivo => archivo.tipo === 'Memo');
-                res.render('principal/visualizar', {name: req.session.name, minutas, memorandos , matricula: req.session.matricula, notifications: req.session.notifications});
+                delete req.session.message;
+                delete req.session.doc;
+                res.render('principal/visualizar', {name: req.session.name, minutas, memorandos , matricula: req.session.matricula, notifications: req.session.notifications, privateKey: req.session.privateKey});
             });
         });
     } 
@@ -127,7 +136,9 @@ function firmar(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula});
+        delete req.session.message;
+        delete req.session.doc;
+        res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
     } 
 }
 
@@ -147,7 +158,9 @@ function uploadf(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
                 req.session.users = users;
-                res.render('principal/subirminuta', {name: req.session.name, users: req.session.users , matricula: req.session.matricula, notifications: req.session.notifications});
+                delete req.session.message;
+                delete req.session.doc;
+                res.render('principal/subirminuta', {name: req.session.name, users: req.session.users , matricula: req.session.matricula, notifications: req.session.notifications, privateKey: req.session.privateKey});
             });
         });
     } 
@@ -169,7 +182,9 @@ function uploadm(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
                 req.session.users = users;
-                res.render('principal/subirmemo', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users});
+                delete req.session.message;
+                delete req.session.doc;
+                res.render('principal/subirmemo', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users, privateKey: req.session.privateKey});
             });
         });
     } 
@@ -199,7 +214,7 @@ function uploadMinut(req, res) {
                     if(req.session.loggedin != true){
                         res.redirect('/login');
                     } else{
-                        res.render('principal/subirminuta',  {name: req.session.name, users: req.session.users , notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists' });
+                        res.render('principal/subirminuta',  {name: req.session.name, users: req.session.users , notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey});
                     }
                 }else{
                     fs.writeFile(filePath, req.file.buffer, (err) => {
@@ -253,7 +268,7 @@ function uploadMemo(req, res) {
                     if(req.session.loggedin != true){
                         res.redirect('/login');
                     } else{
-                        res.render('principal/subirmemo',  {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists' });
+                        res.render('principal/subirmemo',  {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey});
                     }
                 }
 
@@ -361,7 +376,7 @@ function uploadMemoConfidential(req, res) {
                             data.source,
                             firma,
                             receive,
-                            'Conf'
+                            'Conf'//aqui las siguientes columnas son kdest para la llave del destino y ksource para la llave del origen
                         ];
 
                         return new Promise((resolve, reject) => {
@@ -406,12 +421,12 @@ function verDocumentos(req, res){
                 return res.status(500).send('Database connection error');
             }
             //aquí habría que hacer una de las comprobaciones de si ya firmó
-            conn.query('SELECT name FROM archivos WHERE recibe = ? OR recibe = "N/A"', req.session.matricula, (err, results) => {
+            conn.query('SELECT * FROM archivos WHERE recibe = ? OR recibe = "N/A"', [req.session.matricula], (err, results) => {
                 if (err) {
                     console.error('Error fetching users from the database:', err);
                 }
-                const nombresArchivos = results.map(result => result.name);
-                res.render('principal/verDocumentos', {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, documents: nombresArchivos});
+                //const nombresArchivos = results.map(result => result.name);
+                res.render('principal/verDocumentos', {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, documents: results, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey});
             });
         });
     } 
@@ -497,18 +512,47 @@ function comparePasswords(plainPassword, hashedPassword) {
     return hashedInputPassword === hashedPassword;
 }
 
+function XOR_hex(a, b) {
+    const buffer1 = Buffer.from(a, 'hex');
+    const buffer2 = Buffer.from(b, 'hex');
+
+    // Obtener la longitud máxima entre los dos buffers
+    const maxLength = Math.max(buffer1.length, buffer2.length);
+
+    // Realizar la operación XOR a nivel de bits
+    let result = '';
+    for (let i = 0; i < maxLength; i++) {
+        const byte1 = i < buffer1.length ? buffer1[i] : 0;
+        const byte2 = i < buffer2.length ? buffer2[i] : 0;
+        const xorResult = byte1 ^ byte2;
+        result += xorResult.toString(16).padStart(2, '0'); // Convertir resultado a hexadecimal
+    }
+
+    return result;
+}
+
+function obtenerprivkey(privateKey, matricula, password){
+    const usr = hashPassword(matricula);
+    const pss = hashPassword(password);
+    const key = XOR_hex(usr,pss);
+    const keyBuffer = Buffer.from(key, 'hex');
+    const [iv, textoc] = splitString(privateKey.toString());
+    const ivbuff = Buffer.from(iv, 'base64');
+    const descifrado = decrypt(textoc, keyBuffer, ivbuff);
+    return addPemHeaders(descifrado, 'PRIVATE');
+}
+
 function generatesignature(req, res){
     const data = req.body;
-    const usr = hashPassword(data.user);
     if(req.session.matricula !== data.user)
         console.log("Credenciales incorrectas");
     else{
         req.getConnection((err, conn) => { //sacar llave privada
-            conn.query('SELECT * FROM private WHERE usuario = ?', [usr], (err, datos) => {
+            conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, datos) => {
                 if(datos.length > 0) {
                     const consulta = datos[0];
                     if(comparePasswords(data.confcontra, consulta.password)){
-                        const privateKey = addPemHeaders(consulta.key, 'PRIVATE');
+                        const privateKey = obtenerprivkey(req.session.privateKey, req.session.matricula, data.confcontra);
                         const filePath = 'src/archivos/' + data.nombreArchivoSeleccionado;
                         const filePathPriv = 'src/firmas/' + removeExtension(data.nombreArchivoSeleccionado) + '.txt';
                         const dataDocument = fs.readFileSync(filePath, 'utf8');
@@ -696,7 +740,16 @@ function generateaes(req, res){
             }
         });
     });
-    
+}
+
+function pruebafirm(req, res){
+    const nombreDocumento = req.body.nombreArchivo;
+
+    // Aquí puedes realizar cualquier lógica necesaria, como consultas a la base de datos, etc.
+    // Por ejemplo, responder con un mensaje simple
+    req.session.message = `Firmas de: ${nombreDocumento} verificadas. Documento integro.`;
+    req.session.doc = nombreDocumento;
+    res.redirect('/verDocumentos');
 }
 
 
@@ -714,5 +767,6 @@ module.exports = {
     uploadMemoConfidential,
     alerta,
     descargaclave,
-    verDocumentos
+    verDocumentos,
+    pruebafirm
 }

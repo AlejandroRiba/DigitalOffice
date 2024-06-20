@@ -147,3 +147,12 @@ input:valid {
     color: #eee;
     background-color: rgb(7, 40, 66);
 }
+
+.documento-item {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.documento-item:hover {
+    background-color: #f0f0f0;
+}
