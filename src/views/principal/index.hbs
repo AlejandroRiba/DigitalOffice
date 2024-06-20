@@ -23,14 +23,14 @@
                         <!-- Pantalla grande -->
                         <h1 class="mb-3 d-none d-md-block">WELCOME BACK {{name}}</h1> 
                         <!-- Pantalla chica -->
-                        <h3 class="mb-3 d-block d-md-none">WELCOME BACk {{name}}</h3>
+                        <h3 class="mb-3 d-block d-md-none">WELCOME BACK {{name}}</h3>
                         <div class="d-none d-md-block">
                             <br><br>
                         </div>
                         <!-- Pantalla grande -->
                         <h5 class="mb-4 d-none d-md-block">Generate official minutes with secure signatures from all participants, sign important memorandums, and manage confidential memos with encrypted access for authorized personnel only. Our system enhances efficiency and provides peace of mind. Revolutionize your document management process today!</h5>
                         <!-- Pantalla chica -->
-                        <p class="mb-4 d-block d-md-none" style="font-size: 16px">Generate official minutes with secure signatures from all participants, sign important memorandums, and manage confidential memos with encrypted access for authorized personnel only. Our system enhances efficiency and provides peace of mind. Revolutionize your document management process today!</p>
+                        <p class="mb-4 d-block d-md-none" style="font-size: 12px">Generate official minutes with secure signatures from all participants, sign important memorandums, and manage confidential memos with encrypted access for authorized personnel only. Our system enhances efficiency and provides peace of mind. Revolutionize your document management process today!</p>
                         <div class="d-none d-md-block">
                             <br><br>
                         </div>
@@ -55,7 +55,7 @@
                                 class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
                                 href="/uploadmconf"
                                 role="button"
-                            >Subir memorando confidencial</a>
+                            >Enviar memorando confidencial</a>
                             <a
                                 data-mdb-ripple-init
                                 class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
@@ -64,43 +64,24 @@
                             >Firmar docs pendientes</a>
                             <a
                                 data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2 d-block d-md-block"
+                                class="btn btn-outline-light btn-lg m-2 d-none d-md-block"
                                 href="/verDocumentos"
                                 role="button"
                             >Ver documentos</a>
 
                             <!-- Pantalla chica -->
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2 d-block d-md-none"
-                                href="/uploadf"
-                                role="button"
-                                rel="nofollow"
-                            >Subir minuta</a>
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2 d-block d-md-none"
-                                href="/uploadm"
-                                role="button"
-                            >Subir memorando</a>
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2 d-block d-md-none"
-                                href="/uploadmconf"
-                                role="button"
-                            >Subir memorando</a>
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2 d-block d-md-none"
-                                href="/firmar"
-                                role="button"
-                            >Firmar docs pendientes</a>
-                            <a
-                                data-mdb-ripple-init
-                                class="btn btn-outline-light btn-lg m-2 d-block d-md-none"
-                                href="/verDocumentos"
-                                role="button"
-                            >Ver documentos</a>
+                            <li class="dropdown d-block d-md-none">
+                                <a class="btn btn-outline-light btn-sm m-2"
+                                    style="width: 200px; "
+                                    role="button"
+                                    rel="nofollow"
+                                    data-mdb-ripple-init>Options</a>
+                                <div class="dropdown-content1" aria-labelledby="navbarDropdown">
+                                    <a href="/uploadf"> * Subir minuta </a>
+                                    <a href="/uploadm"> * Subir memorando </a>
+                                    <a href="/visualizar"> * Visualizar archivos </a>
+                                </div>
+                            </li>
 
                      </div>
              </div>
