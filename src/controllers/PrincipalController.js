@@ -325,7 +325,7 @@ function uploadmConfidential(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
                 req.session.users = users;
-                res.render('principal/subirmemoconf', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users});
+                res.render('principal/subirmemoconf', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users, privateKey: req.session.privateKey});
             });
         });
     } 
@@ -348,7 +348,7 @@ function uploadMemoConfidential(req, res) {
                     if (req.session.loggedin != true) {
                         return res.redirect('/login');
                     } else {
-                        return res.render('principal/subirmemoconf', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists' });
+                        return res.render('principal/subirmemoconf', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey });
                     }
                 }
 
@@ -601,7 +601,7 @@ function generatesignature(req, res){
                         });
                         res.redirect('/principal');
                     }else{
-                        res.render('principal/firmar', {error: '* ERROR. Incorrect password.', name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula});
+                        res.render('principal/firmar', {error: '* ERROR. Incorrect password.', name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
                     }
                 }else{
                     console.log("no hay nada");
