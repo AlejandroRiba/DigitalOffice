@@ -5,9 +5,16 @@
                 <div class="d-flex flex-column align-items-start">
                     <h4>Documents</h4>
                     <p>Select a document</p>
+                    <p><b>Minutes</b></p>
                     <ul>
-                        {{#each documents}}
+                        {{#each minutas}}
                             <!-- Aquí en lugar de llamar a una función para mostrar el formulario, se debe cargar el documento en un iframe -->
+                            <li onclick="cargarDocumento(this)" class="documento-item" data-firmas="{{this.firmas}}" id="{{this.name}}">{{this.name}}</li>
+                        {{/each}}
+                    </ul>
+                    <p><b>Memorandums</b></p>
+                    <ul>
+                        {{#each memorandos}}
                             <li onclick="cargarDocumento(this)" class="documento-item" data-firmas="{{this.firmas}}" id="{{this.name}}">{{this.name}}</li>
                         {{/each}}
                     </ul>
@@ -27,29 +34,28 @@
             <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #ccc;">
                 <div class="d-flex flex-column align-items-start">
                     <h4>Signatues</h4>
-                    <p>Signatures required</p>
                     <div>
-                        <h5>Firmas completadas</h5>
+                        <p><b>Completed Signatures</b></p>
                         <ul id="firmasCompletadasList">
                             <!-- Aquí se actualizarán las firmas completadas -->
                         </ul>
-                        <h5>Firmas pendientes</h5>
+                        <p><b>Pending Signatures</b></p>
                         <ul id="firmasPendientesList">
                             <!-- Aquí se actualizarán las firmas pendientes -->
                         </ul>
                     </div>
                     {{#if message}}
                         <!-- Mostrar el error utilizando JavaScript -->
-                        <div id="customMess" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <div id="customMess" class="alert alert-success alert-dismissible fade show" role="alert">
                             {{message}}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         <form action="/prueba" method="POST">
                             <input type="hidden" id="nombreArchivo" name="nombreArchivo" style="display: none;" value="{{nombreArch}}">
-                            <button class="btn btn-primary btn-lg m-2"
+                            <button class="btn btn-success btn-sm m-2"
                                 type="submit"
                                 id="botonVerf"
-                                role="button">Verificar firmas</button>
+                                role="button">Verify signatures</button>
                         </form>
                         <script>
                             setTimeout(function() {
@@ -65,14 +71,36 @@
 
                         </script>
                     {{else}}
-                        <form action="/prueba" method="POST">
-                            <input type="hidden" id="nombreArchivo" name="nombreArchivo" style="display: none;">
-                            <button class="btn btn-primary btn-lg m-2"
-                                type="submit"
-                                id="botonVerf"
-                                style="display: none;"
-                                role="button">Verificar firmas</button>
+                        <div style="align-items: center; padding: auto;">
+                            <form action="/prueba" method="POST">
+                                <input type="hidden" id="nombreArchivo" name="nombreArchivo" style="display: none;">
+                                <button class="btn btn-success btn-sm m-2"
+                                    type="submit"
+                                    id="botonVerf"
+                                    style="display: none;"
+                                    role="button">Verify signatures</button>
                             </form>
+                        </div>
+                    {{/if}}
+                    {{#if error}}
+                        <!-- Mostrar el error utilizando JavaScript -->
+                        <div id="customErr" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            {{message}}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        <script>
+                            setTimeout(function() {
+                                var alert = document.getElementById('customErr');
+                                if (alert) {
+                                    console.log(firmas);
+                                    alert.classList.add('hide');
+                                    alert.addEventListener('transitionend', function() {
+                                        alert.remove();
+                                    }, { once: true });
+                                }
+                            }, 4000);
+
+                        </script>
                     {{/if}}
                 </div>
             </div>

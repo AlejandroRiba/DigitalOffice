@@ -31,13 +31,13 @@
                         <a href="#"><i class="fas fa-bell"></i></a><span style="color: rgb(255, 38, 0); margin-bottom:12px; font-size:34px">•</span>
                         <div class="notification-content">
                             {{#each notifications}}
-                                <a href="/firmar">Se requiere tu firma en la minuta {{this.name}} subida por {{this.matricula}}.</a>
+                                <a href="/firmar">URGENT! Your signature is required on {{this.name}} uploaded by {{this.matricula}}.</a>
                             {{/each}}
                         </div>
                     {{else}}
                         <a href="#"><i class="fa-regular fa-bell"></i></a>
                         <div class="notification-content">
-                            <a href="/">No tienes documentos por firmar.</a>
+                            <a href="/">There are no pending documents to sign.</a>
                         </div>
                     {{/if}}
                 </li>
@@ -49,9 +49,11 @@
                         rel="nofollow"
                         data-mdb-ripple-init>Menu</a>
                     <div class="dropdown-content" aria-labelledby="navbarDropdown">
-                        <a href="/uploadf"> * Subir minuta </a>
-                        <a href="/uploadm"> * Subir memorando </a>
-                        <a href="/visualizar"> * Visualizar archivos </a>
+                        <a href="/uploadf"> * Upload Minute </a>
+                        <a href="/uploadm"> * Upload Memorandum </a>
+                        <a href="/uploadmconf"> * Send Confidential Memorandum </a>
+                        <a href="/firmar"> * Sign Pending Documents </a>
+                        <a href="/verDocumentos"> * View Documents </a>
                     </div>
                 </li>
                 <span class="d-none d-md-block">&nbsp;&nbsp;</span>

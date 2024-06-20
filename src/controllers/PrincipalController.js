@@ -137,7 +137,7 @@ function firmar(req, res){
         res.redirect('/login');
     } else{
         delete req.session.message;
-        delete req.session.doc;
+        delete req.session.doc; //se eliminan datos usados provisionalmente
         res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
     } 
 }
@@ -500,8 +500,10 @@ function verDocumentos(req, res){
                 if (err) {
                     console.error('Error fetching users from the database:', err);
                 }
+                const minutas = results.filter(archivo => archivo.tipo === 'Min');
+                const memorandos = results.filter(archivo => archivo.tipo === 'Memo');
                 //const nombresArchivos = results.map(result => result.name);
-                res.render('principal/verDocumentos', {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, documents: results, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey});
+                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey});
             });
         });
     } 

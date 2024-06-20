@@ -14,7 +14,7 @@ function cancelarFirma() {
 function mostrarFormulario(elemento) {
     var nombreArchivo = elemento.textContent;
     console.log(elemento)
-    document.getElementById('nombreArchivoSeleccionado').textContent = "Documento a firmar: " + nombreArchivo;
+    document.getElementById('nombreArchivoSeleccionado').textContent = "Document to sign: " + nombreArchivo;
     document.getElementById('nombreArchivoSeleccionadoInput').value = nombreArchivo;
     document.getElementById('formContainer').style.display = 'block';
 }
