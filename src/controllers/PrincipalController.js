@@ -159,6 +159,7 @@ function uploadf(req, res){
                 }
                 req.session.users = users;
                 delete req.session.message;
+                delete req.session.error;
                 delete req.session.doc;
                 res.render('principal/subirminuta', {name: req.session.name, users: req.session.users , matricula: req.session.matricula, notifications: req.session.notifications, privateKey: req.session.privateKey});
             });
@@ -503,7 +504,7 @@ function verDocumentos(req, res){
                 const minutas = results.filter(archivo => archivo.tipo === 'Min');
                 const memorandos = results.filter(archivo => archivo.tipo === 'Memo');
                 //const nombresArchivos = results.map(result => result.name);
-                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey});
+                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey, error: req.session.error});
             });
         });
     } 
@@ -565,14 +566,11 @@ function verifySignature(message, signature, publicKey) {
 }
 
 // Función para verificar el documento firmado
-function verifySignedDocument(signedDocument, publicKey) {
+function verifySignedDocument(documentContent, signatureDoc, publicKey) {
     // Separar el contenido del documento y la firma
-    const [documentContent, signatureBase64] = signedDocument.split('\n\n-----BEGIN SIGNATURE-----\n');
-    const signature = signatureBase64.replace('-----END SIGNATURE-----', '').trim();
-
+    const signature = signatureDoc.replace('-SIGNATURE-', '').trim();
     // Calcular el hash del contenido del documento
     const documentHash = calculateHash(documentContent);
-
     // Verificar la firma
     return verifySignature(documentHash, signature, publicKey);
 }
@@ -870,14 +868,108 @@ function generateaes(req, res){
     });
 }
 
-function pruebafirm(req, res){
+function pruebafirm(req, res) {
+    delete req.session.message;
+    delete req.session.error;
+    delete req.session.doc;
     const nombreDocumento = req.body.nombreArchivo;
+    const filePath1 = 'src/archivos/' + nombreDocumento;
+    const filePath2 = 'src/cifrados/' + nombreDocumento;
 
-    // Aquí puedes realizar cualquier lógica necesaria, como consultas a la base de datos, etc.
-    // Por ejemplo, responder con un mensaje simple
-    req.session.message = `Firmas de: ${nombreDocumento} verificadas. Documento integro.`;
-    req.session.doc = nombreDocumento;
-    res.redirect('/verDocumentos');
+    let dataDocument;
+    let dataFirmas;
+    let filePathToUse;
+
+    // Intentar leer desde filePath1
+    try {
+        dataDocument = fs.readFileSync(filePath1, 'utf8');
+        filePathToUse = filePath1;
+    } catch (err) {
+        // Si hay error al leer desde filePath1, intentar desde filePath2
+        try {
+            dataDocument = fs.readFileSync(filePath2, 'utf8');
+            filePathToUse = filePath2;
+        } catch (err) {
+            console.error('Error al leer el archivo:', err);
+            return res.status(404).send('Archivo no encontrado en ninguna ubicación');
+        }
+    }
+
+    req.getConnection((err, conn) => {
+        if (err) {
+            console.error('Error al obtener la conexión:', err);
+            return res.status(500).send('Error al obtener la conexión');
+        }
+
+        const query = 'SELECT firmas FROM archivos WHERE name = ?';
+        const name = [nombreDocumento];
+
+        conn.query(query, name, (err, results) => {
+            if (err) {
+                console.error('Error en la consulta:', err);
+                return res.status(500).send('Error en la consulta');
+            }
+
+            if (results.length === 0) {
+                console.log('No se encontraron resultados.');
+                return res.redirect('/principal');
+            }
+
+            let filePathPriv;
+
+            // Definir la ruta de lectura de firmas dependiendo de la ruta de lectura del doc usada
+            if (filePathToUse === filePath1) {
+                filePathPriv = 'src/firmas/' + removeExtension(nombreDocumento) + '.txt';
+            } else {
+                filePathPriv = 'src/firmasCifradas/' + removeExtension(nombreDocumento) + '.txt';
+            }
+
+            try {
+                dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
+            } catch (err) {
+                console.error('Error al leer el archivo de firmas:', err);
+                return res.status(404).send('Archivo de firmas no encontrado');
+            }
+
+            let firmasValidas = true;
+
+            const firmasArray = results[0].firmas.split(','); // Suponiendo que las firmas estén separadas por comas
+            const verificarFirmas = firmasArray.map(firma => {
+                const [matricula, status] = firma.trim().split(':');
+                if (status.trim() === 'si') {
+                    return new Promise((resolve, reject) => {
+                        conn.query('SELECT firma FROM registros WHERE matricula = ?', [matricula], (err, consulta) => {
+                            if (err) {
+                                console.error('Error en la consulta:', err);
+                                return reject('Error en la consulta');
+                            }
+                            const publicKey = consulta[0];
+                            if (!verifySignedDocument(dataDocument, dataFirmas, publicKey.firma)) { // si da un false, sería documento corrupto
+                                firmasValidas = false;
+                            }
+                            resolve();
+                        });
+                    });
+                }
+                return Promise.resolve();
+            });
+
+            Promise.all(verificarFirmas)
+                .then(() => {
+                    if (firmasValidas) {
+                        req.session.message = `Firmas de: ${nombreDocumento} verificadas. Documento integro.`;
+                    } else {
+                        req.session.error  = `Firmas de: ${nombreDocumento} incorrectas. Documento corrupto.`;
+                    }
+                    req.session.doc = nombreDocumento;
+                    res.redirect('/verDocumentos');
+                })
+                .catch(error => {
+                    console.error('Error en la verificación de firmas:', error);
+                    res.status(500).send('Error en la verificación de firmas');
+                });
+        });
+    });
 }
 
 

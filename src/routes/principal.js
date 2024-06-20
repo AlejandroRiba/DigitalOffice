@@ -16,6 +16,7 @@ router.post('/firmar', PrincipalController.generatesignature);
 router.get('/alerta', PrincipalController.alerta);
 router.get('/downloadKey', PrincipalController.descargaclave);
 router.get('/verDocumentos', PrincipalController.verDocumentos);
+router.post('/veriFirma', PrincipalController.pruebafirm);
 
 router.get('/download', function(req, res) {
     const uploadedFileName = req.session.uploadedFileName; // Obtén el nombre del archivo de la sesión
