@@ -146,8 +146,6 @@ function storeUser(req, res) {
     const data = req.body;
     const hashedPassword = hashPassword(data.contras);
     const {publicKey, privateKey} = generateUniqueKeyPair();
-    const privtofile = protectkey(userData.matricula, data.contras, privateKey);
-    const comproba = hashPassword(privtofile);
     const userData = {
         matricula: data.matricula,
         password: hashedPassword,
@@ -157,6 +155,9 @@ function storeUser(req, res) {
         cargo: data.cargo,
         firma: publicKey
     };
+    const privtofile = protectkey(userData.matricula, data.contras, privateKey);
+    const comproba = hashPassword(privtofile);
+    
 
     req.getConnection((err, conn) => {
         conn.query('SELECT * FROM registros WHERE matricula = ?', [data.matricula], (err, datos) => {
