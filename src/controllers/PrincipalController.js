@@ -343,40 +343,40 @@ async function encryptAesKey(req, receive, key) {
                 if (!result.length) return reject(new Error('No se encontró el registro'));
 
                 const publicKeyDest = result[0].firma;
-                // console.log("Public Key:\n" + publicKeyDest); // Depuración
                 try {
-                    const encryptedKey = crypto.publicEncrypt(publicKeyDest, key);
+                    const encryptedKey = crypto.publicEncrypt(
+                        {
+                            key: publicKeyDest,
+                            padding: crypto.constants.RSA_PKCS1_PADDING
+                        },
+                        key
+                    );
                     resolve(encryptedKey);
                 } catch (error) {
-                    reject(new Error('Failed to read asymmetric key: ' + error.message));
+                    reject(new Error('Failed to encrypt key: ' + error.message));
                 }
             });
         });
     });
 }
 
-async function decryptAesKey(req, name, encryptedKey) {
-    return new Promise((resolve, reject) => {
-        req.getConnection((err, conn) => {
-            if (err) return reject(err);
-            conn.query('SELECT kdest FROM archivos WHERE recibe = ? and name = ?', [req.session.matricula, name], (err, result) => {
-                if (err) return reject(err);
-                if (!result.length) return reject(new Error('No se encontró el usuario'));
-
-                const privateKey = result[0].private_key;
-                try {
-                    const decryptedKey = crypto.privateDecrypt({
-                        key: privateKey,
-                        passphrase: '', // Si la llave privada está encriptada con una contraseña, se debe especificar aquí
-                    }, encryptedKey);
-                    resolve(decryptedKey);
-                } catch (error) {
-                    reject(new Error('Failed to decrypt AES key: ' + error.message));
-                }
-            });
-        });
-    });
+function decryptAesKey(encryptedKey, privateKey) {
+    try {
+        const buffer = Buffer.from(encryptedKey, 'base64');
+        const decryptedKey = crypto.privateDecrypt(
+            {
+                key: privateKey,
+                padding: crypto.constants.RSA_PKCS1_PADDING
+            },
+            buffer
+        );
+        return decryptedKey.toString('utf8');
+    } catch (error) {
+        console.error('Error while decrypting:', error.message);
+        throw new Error('Failed to decrypt key');
+    }
 }
+
 
 async function generateAesKey(req) {
     return new Promise((resolve, reject) => {
@@ -692,15 +692,25 @@ function generatesignature(req, res){
                             fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
                         } 
                         else {
-                        
                             filePathPriv = 'src/firmasCifradas/' + removeExtension(data.nombreArchivoSeleccionado) + '.txt';
+                            req.getConnection((err, conn)=>{
+                                conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [data.nombreArchivoSeleccionado, req.session.matricula], (err, res)=>{
+                                    const aesKeyC = res[0].kdest;
+                                    console.log("aesKeyC: ", aesKeyC);
+                                    console.log("private key: ", privateKey)
+                                    const aesKey = decryptAesKey(aesKeyC, privateKey);
+                                    console.log("aesKey: ", aesKey.toString('base64'));
+                                });
+                            });
+                            return;
                             if (!checkIfFileExists(filePathPriv)) {
                                 signedDocument = `-SIGNATURE-${signature}`;
+                                fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
                             } else {
                                 const dataDocumentSign = fs.readFileSync(filePathPriv, 'utf8');
                                 signedDocument = `${dataDocumentSign}-SIGNATURE-${signature}`;
+                                fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
                             }
-                            fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
                         }
 
                         if (results.length > 0) {
@@ -736,6 +746,14 @@ function generatesignature(req, res){
                 console.log("No se encontraron datos para la matrícula especificada.");
                 res.redirect('/principal');
             }
+        });
+    });
+}
+
+function getAESKeyC(req, fileName){
+    req.getConnection((err, conn)=>{
+        conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [fileName, req.session.matricula], (err, res)=>{
+            return res[0];
         });
     });
 }
