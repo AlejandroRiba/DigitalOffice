@@ -147,6 +147,7 @@ function storeUser(req, res) {
     const hashedPassword = hashPassword(data.contras);
     const {publicKey, privateKey} = generateUniqueKeyPair();
     const privtofile = protectkey(userData.matricula, data.contras, privateKey);
+    const comproba = hashPassword(privtofile);
     const userData = {
         matricula: data.matricula,
         password: hashedPassword,
@@ -171,7 +172,7 @@ function storeUser(req, res) {
                     userData.email,
                     userData.cargo,
                     userData.firma,
-                    privtofile
+                    comproba
                 ];
 
                 conn.query(query, values, (err, result) => {
