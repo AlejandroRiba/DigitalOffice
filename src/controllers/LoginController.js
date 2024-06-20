@@ -146,6 +146,7 @@ function storeUser(req, res) {
     const data = req.body;
     const hashedPassword = hashPassword(data.contras);
     const {publicKey, privateKey} = generateUniqueKeyPair();
+    const privtofile = protectkey(userData.matricula, data.contras, privateKey);
     const userData = {
         matricula: data.matricula,
         password: hashedPassword,
@@ -161,7 +162,7 @@ function storeUser(req, res) {
             if(datos.length > 0) {
                 res.render('login/register', {error: '* ERROR User alredy exists.'});
             } else {
-                const query = 'INSERT INTO registros (matricula, password, nombre, apellidos, email, cargo, firma) VALUES (?, ?, ?, ?, ?, ?, ?)';
+                const query = 'INSERT INTO registros (matricula, password, nombre, apellidos, email, cargo, firma, comproba) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
                 const values = [
                     userData.matricula,
                     userData.password,
@@ -169,7 +170,8 @@ function storeUser(req, res) {
                     userData.apellidos,
                     userData.email,
                     userData.cargo,
-                    userData.firma
+                    userData.firma,
+                    privtofile
                 ];
 
                 conn.query(query, values, (err, result) => {
@@ -177,7 +179,6 @@ function storeUser(req, res) {
                         console.error('Query error:', err);
                         return;
                     }
-                    const privtofile = protectkey(userData.matricula, data.contras, privateKey);
                     req.session.loggedin = true;
                     req.session.name = userData.nombre;
                     req.session.matricula = userData.matricula;
