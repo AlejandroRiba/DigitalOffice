@@ -31,7 +31,6 @@ function login(req, res) {
 function auth(req, res){
     upload(req, res, function (err) {
         const filePath = path.join(uploadDir, req.file.originalname);
-        console.log(filePath);
         fs.readFile(filePath, 'utf8', (err, filedata) => {
             // Aquí procesas el contenido del archivo
             fs.unlink(filePath, (err) => {
