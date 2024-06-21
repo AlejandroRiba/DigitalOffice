@@ -378,7 +378,7 @@ async function decryptAesKey(req, name, encryptedKey) {
         });
     });
 }
-
+//prueba para el commit
 async function generateAesKey(req) {
     return new Promise((resolve, reject) => {
         req.getConnection((err, conn) => {
