@@ -8,6 +8,10 @@ const { fileLoader } = require('ejs');
 const { PDFDocument, rgb } = require('pdf-lib');
 const MemoryStream = require('memorystream');
 
+const Utils = require('../controllers/Utils'); 
+const utils = new Utils();
+
+
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
@@ -566,12 +570,7 @@ function calculateHash(data) {
     return hash.digest('base64');
 }
 
-function hashPassword(password) {
-    const hash = crypto.createHash('sha256')
-                       .update(password)
-                       .digest('hex');
-    return hash;
-}
+
 
 function signDocument(hash, privateKey) {
     const sign = crypto.createSign('RSA-SHA256');
@@ -597,52 +596,7 @@ function verifySignedDocument(documentContent, signatureDoc, publicKey) {
     return false;  // Si no se encuentra ninguna coincidencia válida, devuelve false
 }
 
-function addPemHeaders(base64, type) {
-    const header = `-----BEGIN ${type} KEY-----\n`;
-    const footer = `\n-----END ${type} KEY-----`;
-    const keyPem = header + base64.match(/.{1,64}/g).join('\n') + footer;
-    return keyPem;
-}
 
-function comparePasswords(plainPassword, hashedPassword) {
-    const hashedInputPassword = hashPassword(plainPassword);
-    return hashedInputPassword === hashedPassword;
-}
-
-function XOR_hex(a, b) {
-    const buffer1 = Buffer.from(a, 'hex');
-    const buffer2 = Buffer.from(b, 'hex');
-
-    // Obtener la longitud máxima entre los dos buffers
-    const maxLength = Math.max(buffer1.length, buffer2.length);
-
-    // Realizar la operación XOR a nivel de bits
-    let result = '';
-    for (let i = 0; i < maxLength; i++) {
-        const byte1 = i < buffer1.length ? buffer1[i] : 0;
-        const byte2 = i < buffer2.length ? buffer2[i] : 0;
-        const xorResult = byte1 ^ byte2;
-        result += xorResult.toString(16).padStart(2, '0'); // Convertir resultado a hexadecimal
-    }
-
-    return result;
-}
-
-function obtenerprivkey(privateKey, matricula, password, boo){
-    const usr = hashPassword(matricula);
-    let pss;
-    if(boo){
-        pss = hashPassword(password);
-    }else{
-        pss = password;
-    }
-    const key = XOR_hex(usr,pss);
-    const keyBuffer = Buffer.from(key, 'hex');
-    const [iv, textoc] = splitString(privateKey.toString());
-    const ivbuff = Buffer.from(iv, 'base64');
-    const descifrado = decrypt(textoc, keyBuffer, ivbuff);
-    return addPemHeaders(descifrado, 'PRIVATE');
-}
 
 
 function generatesignature(req, res){
@@ -667,7 +621,7 @@ function generatesignature(req, res){
             if (datos.length > 0) {
                 const consulta = datos[0];
                 if (comparePasswords(data.confcontra, consulta.password)) {
-                    const privateKey = obtenerprivkey(req.session.privateKey, req.session.matricula, data.confcontra, true);
+                    const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, data.confcontra, true);
 
                     // Definir dos posibles rutas de archivo
                     const filePath1 = 'src/archivos/' + data.nombreArchivoSeleccionado;
@@ -875,21 +829,6 @@ function checkIfFileExists(filePath) {
     }
 }
 
-//Función para descifrar
-function decrypt(encryptedHex, keyBuffer, ivBuffer) {
-    const decipher = crypto.createDecipheriv('aes-256-ctr', keyBuffer, ivBuffer);
-    let decrypted = decipher.update(encryptedHex, 'base64', 'base64');
-    decrypted += decipher.final('base64');
-    return decrypted;
-}
-
-function splitString(str) {
-    const firstPart = str.slice(0, 24);  // Obtener los primeros 24 caracteres
-    const secondPart = str.slice(24);    // Obtener el resto de la cadena
-    
-    return [firstPart, secondPart];
-}
-
 function descargaclave(req, res){
     const protectKeyResult = req.session.protectKey;
 
@@ -925,7 +864,7 @@ function generateaes(req, res){
                 console.log(cryp.toString('base64')); */
                 conn.query('SELECT * FROM archivos WHERE name = ?', ['VHDL.txt'], (err, datos) =>{
                     const cryp = datos[0].kdest;
-                    const privateKey = obtenerprivkey(req.session.privateKey, req.session.matricula, data.user, true);
+                    const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, data.user, true);
                     const decr = decryptAesKey(cryp,privateKey);
                     console.log('Clave descifrada: ',decr);
                 });
@@ -1011,7 +950,7 @@ function pruebafirm(req, res) {
                                         return res.status(500).send('Error en la consulta');
                                     }
                                     const consulta = datos[0];
-                                    const privateKey = obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password, false);
+                                    const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password, false);
                                     const aesKey = decryptAesKey(aesKeyC, privateKey);
                                     dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
                                     const signData = dataFirmas.toString('utf8')
