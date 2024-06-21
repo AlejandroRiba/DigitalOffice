@@ -371,7 +371,7 @@ function decryptAesKey(encryptedKey, privateKey) {
             },
             buffer
         );
-        return decryptedKey.toString('utf8');
+        return decryptedKey.toString('base64');
     } catch (error) {
         console.error('Error while decrypting:', error.message);
         throw new Error('Failed to decrypt key');
@@ -401,8 +401,8 @@ function encryptFile(buffer, aesKey) {
     return { iv, encrypted };
 }
 
-function decryptFile(encryptedData, aesKey) {
-    const { iv, encrypted } = encryptedData;
+function decryptFile(iv, encrypted, aesKey64) {
+    const aesKey = Buffer.from(aesKey64, 'base64');
     const decipher = crypto.createDecipheriv('aes-256-ctr', aesKey, iv);
     let decrypted = decipher.update(encrypted);
     decrypted = Buffer.concat([decrypted, decipher.final()]);
@@ -434,12 +434,20 @@ async function uploadMemoConfidential(req, res) {
             const data = req.body;
             const receives = data.users;
             const aesKey = await generateAesKey(req);
+            // console.log("AES key Generada: " + aesKey.toString('base64'));
 
             // Cifrar el archivo con la clave AES
             const { iv, encrypted } = encryptFile(req.file.buffer, aesKey);
+            const ivBase64 = iv.toString('base64');
+            const encryptedBase64 = encrypted.toString('base64');
+
+            // console.log("IV Generada: " + ivBase64);
+            // console.log("Encrypted Generado: " + encryptedBase64);
+
+            const encryptedData = ivBase64 + ',' + encryptedBase64;
 
             // Guardar el archivo cifrado
-            await fs.promises.writeFile(filePath, Buffer.concat([iv, encrypted]));
+            await fs.promises.writeFile(filePath, encryptedData);
 
             const encryptedKeys = await Promise.all(receives.map(async (user) => {
                 const encryptedKey = await encryptAesKey(req, user, aesKey);
@@ -693,26 +701,49 @@ function generatesignature(req, res){
                         } 
                         else {
                             filePathPriv = 'src/firmasCifradas/' + removeExtension(data.nombreArchivoSeleccionado) + '.txt';
-                            req.getConnection((err, conn)=>{
-                                conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [data.nombreArchivoSeleccionado, req.session.matricula], (err, res)=>{
+                            req.getConnection((err, conn) => {
+                                conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [data.nombreArchivoSeleccionado, req.session.matricula], (err, res) => {
+                                    if (err) {
+                                        console.error("Error al ejecutar la consulta:", err);
+                                        // Manejar el error apropiadamente
+                                        return;
+                                    }
+                            
                                     const aesKeyC = res[0].kdest;
-                                    console.log("aesKeyC: ", aesKeyC);
-                                    console.log("private key: ", privateKey)
                                     const aesKey = decryptAesKey(aesKeyC, privateKey);
-                                    console.log("aesKey: ", aesKey.toString('base64'));
+
+                                    if (!checkIfFileExists(filePathPriv)) {
+                                        signedDocument = `-SIGNATURE-${signature}`;
+                                        const signedBuffer = Buffer.from(signedDocument, 'utf8');
+                                        const {iv, encrypted} = encryptFile(signedBuffer, Buffer.from(aesKey,'base64'));
+                                        const ivBase64 = iv.toString('base64');
+                                        const encryptedBase64 = encrypted.toString('base64');
+                                        const encryptedData = ivBase64 + ',' + encryptedBase64;
+                                        fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
+                                    } else {
+                                        const signDataBuffer = fs.readFileSync(filePathPriv, 'utf8');
+                                        const signData = signDataBuffer.toString('utf8')
+                                        const [ivB64, encryptedB64] = signData.split(',');
+                                        const ivBuffer = Buffer.from(ivB64, 'base64');
+                                        const encryptedBuffer = Buffer.from(encryptedB64, 'base64');
+                                        try {
+                                            const decryptedBuffer = decryptFile(ivBuffer, encryptedBuffer, aesKey);
+                                            const decryptedData = decryptedBuffer.toString('utf8');
+                                            console.log("Decryted data: " + decryptedData);
+                                            signedDocument = `${decryptedData}-SIGNATURE-${signature}`;
+                                            const signedBuffer = Buffer.from(signedDocument, 'utf8');
+                                            const {iv, encrypted} = encryptFile(signedBuffer, Buffer.from(aesKey,'base64'));
+                                            const ivBase64 = iv.toString('base64');
+                                            const encryptedBase64 = encrypted.toString('base64');
+                                            const encryptedData = ivBase64 + ',' + encryptedBase64;
+                                            fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
+                                        } catch (error) {
+                                            console.error("Error al descifrar los datos:", error);
+                                        }
+                                    }
                                 });
                             });
-                            return;
-                            if (!checkIfFileExists(filePathPriv)) {
-                                signedDocument = `-SIGNATURE-${signature}`;
-                                fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
-                            } else {
-                                const dataDocumentSign = fs.readFileSync(filePathPriv, 'utf8');
-                                signedDocument = `${dataDocumentSign}-SIGNATURE-${signature}`;
-                                fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
-                            }
                         }
-
                         if (results.length > 0) {
                             let firmas = results[0].firmas;
                             firmas = cambiarEstadoMatricula(firmas, req.session.matricula);
@@ -949,8 +980,36 @@ function pruebafirm(req, res) {
             } else {
                 filePathPriv = 'src/firmasCifradas/' + removeExtension(nombreDocumento) + '.txt';
                 try {
-                    dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
-                    //dataFirmas = decrypt  AQUI HAY QUE HACER EL AJUSTE PARA QUE SE MANDE A LLAMAR A LA FUNCIÓN DE DESCIFRADO
+                    req.getConnection((err, conn) => {
+                        conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [data.nombreArchivoSeleccionado, req.session.matricula], (err, res) => {
+                            if (err) {
+                                console.error("Error al ejecutar la consulta:", err);
+                                return;
+                            }
+                            const aesKeyC = res[0].kdest;
+                            req.getConnection((err, conn) => {
+                                conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, datos) => {
+                                    if (err) {
+                                        console.error('Error en la consulta:', err);
+                                        return res.status(500).send('Error en la consulta');
+                                    }
+                                    const consulta = datos[0];
+                                    const privateKey = obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password);
+                                    const aesKey = decryptAesKey(aesKeyC, privateKey);
+                                    dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
+                                    const signData = dataFirmas.toString('utf8')
+                                    const [ivB64, encryptedB64] = signData.split(',');
+                                    const ivBuffer = Buffer.from(ivB64, 'base64');
+                                    const encryptedBuffer = Buffer.from(encryptedB64, 'base64');
+                                    const decryptedBuffer = decryptFile(ivBuffer, encryptedBuffer, aesKey);
+                                    const decryptedData = decryptedBuffer.toString('utf8');
+                                    dataFirmas = decryptedData; 
+                                });
+                            });
+                        });
+                    });
+                    
+                    //  AQUI HAY QUE HACER EL AJUSTE PARA QUE SE MANDE A LLAMAR A LA FUNCIÓN DE DESCIFRADO
                 } catch (err) {
                     console.error('Error al leer el archivo de firmas:', err);
                     return res.status(404).send('Archivo de firmas no encontrado');
