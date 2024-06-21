@@ -344,15 +344,16 @@ async function encryptAesKey(req, receive, key) {
                 if (!result.length) return reject(new Error('No se encontró el registro'));
 
                 const publicKeyDest = result[0].firma;
+                console.log(publicKeyDest); // Debe ser en formato PEM o DER
                 try {
                     const encryptedKey = crypto.publicEncrypt(
                         {
                             key: publicKeyDest,
                             padding: crypto.constants.RSA_PKCS1_PADDING
                         },
-                        key
+                        Buffer.from(key)
                     );
-                    resolve(encryptedKey);
+                    resolve(encryptedKey.toString('base64'));
                 } catch (error) {
                     reject(new Error('Failed to encrypt key: ' + error.message));
                 }
@@ -362,8 +363,8 @@ async function encryptAesKey(req, receive, key) {
 }
 
 function decryptAesKey(encryptedKey, privateKey) {
+    const buffer = Buffer.from(encryptedKey, 'base64');
     try {
-        const buffer = Buffer.from(encryptedKey, 'base64');
         const decryptedKey = crypto.privateDecrypt(
             {
                 key: privateKey,
@@ -371,34 +372,25 @@ function decryptAesKey(encryptedKey, privateKey) {
             },
             buffer
         );
-        return decryptedKey.toString('base64');
+        return decryptedKey;
     } catch (error) {
-        console.error('Error while decrypting:', error.message);
-        throw new Error('Failed to decrypt key');
+        throw new Error('Failed to decrypt key: ' + error.message);
     }
 }
 
-//prueba para el commit
-async function generateAesKey(req) {
-    return new Promise((resolve, reject) => {
-        req.getConnection((err, conn) => {
-            if (err) return reject(err);
-            conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, result) => {
-                if (err) return reject(err);
-                if (!result.length) return reject(new Error('No se encontró el registro'));
-                const key128 = crypto.randomBytes(32);
-                resolve(key128);
-            });
-        });
-    });
+// Función para cifrar
+function encrypt(text, keyBuffer, iv) {
+    const cipher = crypto.createCipheriv('aes-256-ctr', keyBuffer, iv);
+    let encrypted = cipher.update(text, 'base64', 'base64'); 
+    encrypted += cipher.final('base64');
+    return encrypted;
 }
 
 function encryptFile(buffer, aesKey) {
-    const iv = crypto.randomBytes(16); // Generar un IV de 16 bytes
-    const cipher = crypto.createCipheriv('aes-256-ctr', aesKey, iv);
-    let encrypted = cipher.update(buffer);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return { iv, encrypted };
+    const iv = crypto.randomBytes(16);
+    const encrypted = encrypt(buffer, aesKey, iv);
+    const tofile = iv.toString('base64') + encrypted;
+    return tofile;
 }
 
 function decryptFile(iv, encrypted, aesKey64) {
@@ -419,10 +411,17 @@ async function uploadMemoConfidential(req, res) {
             return res.status(500).json({ error: 'Error during file upload' });
         }
 
+        if (!req.file) {
+            console.error('No file uploaded');
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
         const filePath = 'src/cifrados/' + req.file.originalname;
 
         try {
             const exists = await checkFileExists(filePath);
+            console.log(`File exists: ${exists}`);
+
             if (exists) {
                 if (req.session.loggedin !== true) {
                     return res.redirect('/login');
@@ -433,24 +432,17 @@ async function uploadMemoConfidential(req, res) {
 
             const data = req.body;
             const receives = data.users;
-            const aesKey = await generateAesKey(req);
-            // console.log("AES key Generada: " + aesKey.toString('base64'));
-
+            const aesKey = crypto.randomBytes(32); //256 bits
+            console.log("AES key Generada: " + aesKey.toString('base64'));
             // Cifrar el archivo con la clave AES
-            const { iv, encrypted } = encryptFile(req.file.buffer, aesKey);
-            const ivBase64 = iv.toString('base64');
-            const encryptedBase64 = encrypted.toString('base64');
-
-            // console.log("IV Generada: " + ivBase64);
-            // console.log("Encrypted Generado: " + encryptedBase64);
-
-            const encryptedData = ivBase64 + ',' + encryptedBase64;
+            const encryptedData = encryptFile(req.file.buffer, aesKey);
 
             // Guardar el archivo cifrado
             await fs.promises.writeFile(filePath, encryptedData);
 
             const encryptedKeys = await Promise.all(receives.map(async (user) => {
                 const encryptedKey = await encryptAesKey(req, user, aesKey);
+                console.log(encryptedKey.toString('base64'));
                 return {
                     receive: user,
                     encryptedKey: encryptedKey.toString('base64')
@@ -494,6 +486,7 @@ async function uploadMemoConfidential(req, res) {
         }
     });
 }
+
 
 function verDocumentos(req, res){
     if(req.session.loggedin != true){
@@ -711,7 +704,7 @@ function generatesignature(req, res){
                                     }
                             
                                     const aesKeyC = res[0].kdest;
-                                    const aesKey = decryptAesKey(aesKeyC, privateKey);
+                                    const aesKey = decryptAesKey(aesKeyC.toString('base64'), privateKey);
 
                                     if (!checkIfFileExists(filePathPriv)) {
                                         signedDocument = `-SIGNATURE-${signature}`;
@@ -987,7 +980,7 @@ function pruebafirm(req, res) {
                                 console.error("Error al ejecutar la consulta:", err);
                                 return;
                             }
-                            const aesKeyC = res[0].kdest;
+                            const aesKeyC = Buffer.from(res[0].kdest, 'utf-8');
                             req.getConnection((err, conn) => {
                                 conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, datos) => {
                                     if (err) {
@@ -1060,51 +1053,70 @@ function pruebafirm(req, res) {
     });
 }
 
-function crearDocumento(req, res){
+function crearDocumento(req, res) {
     const { nombreDocumento } = req.body;
     console.log('Nombre del Documento:', nombreDocumento);
-    filePathPriv = 'src/cifrados/' + nombreDocumento;
-    filePath = 'src/archivos/' + nombreDocumento;
-    try {
-        req.getConnection((err, conn) => {
-            conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [nombreDocumento, req.session.matricula], (err, res) => {
-                    if (err) {
-                        console.error("Error al ejecutar la consulta:", err);
-                        return;
-                    }
-                    const aesKeyC = res[0].kdest;
-                    req.getConnection((err, conn) => {
-                        conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, datos) => {
-                        if (err) {
-                            console.error('Error en la consulta:', err);
-                            return res.status(500).send('Error en la consulta');
-                        }
-                        const consulta = datos[0];
-                        const privateKey = obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password);
-                        // console.log("Matricula: " + req.session.matricula);
-                        // console.log("Session PrivateKey: ", req.session.privateKey);
-                        // console.log("Private key: " + privateKey);
-                        // console.log("AES key: " + aesKeyC)
-                        const aesKey = decryptAesKey(aesKeyC, privateKey);
-                        const documento = fs.readFileSync(filePathPriv, 'utf8');
-                        const signData = documento.toString('utf8')
-                        const [ivB64, encryptedB64] = signData.split(',');
-                        const ivBuffer = Buffer.from(ivB64, 'base64');
-                        const encryptedBuffer = Buffer.from(encryptedB64, 'base64');
-                        const decryptedBuffer = decryptFile(ivBuffer, encryptedBuffer, aesKey);
-                        const decryptedData = decryptedBuffer;
-                        fs.writeFileSync(filePath, decryptedData);
-                        res.json({
-                            success: true,
-                            message: 'Datos recibidos correctamente',
-                            data: {
-                                nombreDocumento: nombreDocumento,
-                                additionalInfo: 'Esta es información adicional de ejemplo'
-                            }
-                        });
-                    });
-                }); 
+    const filePathPriv = 'src/cifrados/' + nombreDocumento;
+    const filePath = 'src/archivos/' + nombreDocumento;
+
+    // Helper function to get connection and query the database
+    const queryDatabase = (connection, query, params) => {
+        return new Promise((resolve, reject) => {
+            connection.query(query, params, (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
             });
+        });
+    };
+
+    try {
+        req.getConnection(async (err, conn) => {
+            if (err) {
+                console.error("Error al obtener la conexión:", err);
+                return res.status(500).send('Error al obtener la conexión');
+            }
+
+            try {
+                const result1 = await queryDatabase(conn, 'SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [nombreDocumento, req.session.matricula]);
+                if (result1.length === 0) {
+                    return res.status(404).send('Documento no encontrado');
+                }
+
+                const aesKeyC = result1[0].kdest;
+
+                const result2 = await queryDatabase(conn, 'SELECT * FROM registros WHERE matricula = ?', [req.session.matricula]);
+                if (result2.length === 0) {
+                    return res.status(404).send('Registro no encontrado');
+                }
+
+                const consulta = result2[0];
+                const privateKey = obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password);
+                console.log("AES key cifrada: " + aesKeyC);
+
+                const aesKey = decryptAesKey(aesKeyC, privateKey);
+                console.log("AES key original: " + aesKey);
+
+                // Uncomment and use the following lines if you need to decrypt and save the file
+                // const documento = fs.readFileSync(filePathPriv, 'utf8');
+                // const signData = documento.toString('utf8');
+                // const [ivB64, encryptedB64] = signData.split(',');
+                // const ivBuffer = Buffer.from(ivB64, 'base64');
+                // const encryptedBuffer = Buffer.from(encryptedB64, 'base64');
+                // const decryptedBuffer = decryptFile(ivBuffer, encryptedBuffer, aesKey);
+                // fs.writeFileSync(filePath, decryptedBuffer);
+
+                res.json({
+                    success: true,
+                    message: 'Datos recibidos correctamente',
+                    data: {
+                        nombreDocumento: nombreDocumento,
+                        additionalInfo: 'Esta es información adicional de ejemplo'
+                    }
+                });
+            } catch (queryErr) {
+                console.error('Error en la consulta:', queryErr);
+                res.status(500).send('Error en la consulta');
+            }
         });
     } catch (err) {
         console.error('Error al leer el archivo de firmas:', err);
