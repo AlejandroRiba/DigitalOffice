@@ -3,6 +3,7 @@ const { use } = require('../routes/principal');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { copyStringIntoBuffer } = require('pdf-lib');
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
@@ -193,6 +194,30 @@ function storeUser(req, res) {
 }
 
 function logout(req, res){
+    
+    req.getConnection((err, conn) => {
+        if (err) {
+            console.error('Error connecting to the database:', err);
+            return res.status(500).send('Database connection error');
+        }
+        conn.query('SELECT name FROM archivos WHERE recibe = ? AND tipo = "Conf"', [req.session.matricula], (err, results) => {
+            if (err) {
+                console.error('Error fetching users from the database:', err);
+            }
+            if (results.length > 0) {
+                const nombresArchivos = results.map(result => result.name);
+                nombresArchivos.forEach(name => {
+                    if(fs.existsSync(path.join(uploadDir, name))){
+                        fs.unlink(path.join(uploadDir, name), (err) => {
+                            if (err) {
+                                console.error('Error deleting file:', err);
+                            }
+                        });
+                    }
+                });
+            }            
+        });
+    });
     if(req.session.loggedin == true){
         req.session.destroy();
     }

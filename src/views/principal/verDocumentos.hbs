@@ -160,11 +160,28 @@
             }
 
             let data = await response.json();
-            console.log('Datos recibidos:', data);
+            //console.log('Datos recibidos:', data);
             
         } catch (error) {
             console.error('Error:', error);
         }
+        
+        var urlDocumento = obtenerURLDocumento(nombreDocumento); // Obtener la URL del documento según su nombre
+        var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
+        document.getElementById('nombreArchivo').value = nombreDocumento;
+        var iframe = document.getElementById('documentoFrame');
+        iframe.src = urlDocumento; // Cargar el documento en el iframe
+        
+        // Verificar si el iframe carga correctamente el documento
+        iframe.onload = function() {
+            console.log("Documento cargado correctamente:", urlDocumento);
+        };
+        iframe.onerror = function() {
+            console.error("Error al cargar el documento:", urlDocumento);
+        };
+
+        actualizarFirmas(firmas);
+        mostrarOcultarElemento();
     }
 
 
