@@ -18,12 +18,6 @@
                             <li onclick="cargarDocumento(this)" class="documento-item" data-firmas="{{this.firmas}}" id="{{this.name}}">{{this.name}}</li>
                         {{/each}}
                     </ul>
-                    <p><b>Confidential Memorandums</b></p>
-                    <ul>
-                        {{#each confidentialMemorandos}}
-                            <li onclick="cargarDocumentoConfidencial(this)" class="documento-item" data-firmas="{{this.firmas}}" id="{{this.name}}">{{this.name}}</li>
-                        {{/each}}
-                    </ul>
                 </div>
             </div>
             <div class="col-md-5 col-lg-5 col-xl-7 form-section d-flex flex-column" style="background-color: aliceblue; padding: 5vh; border: 1px black solid;">
@@ -142,30 +136,5 @@
         // Aquí puedes ajustar la lógica para generar la URL si es necesario
         return 'archivos/' + nombreDocumento;
     }
-
-    async function cargarDocumentoConfidencial(element) {
-    var nombreDocumento = element.textContent.trim(); // Obtener el nombre del documento
-    
-    try {
-        let response = await fetch('/crearDocumento', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ nombreDocumento: nombreDocumento })
-        });
-
-        if (!response.ok) {
-            throw new Error('Error en la solicitud fetch: ' + response.statusText);
-        }
-
-        let data = await response.json();
-        console.log('Datos recibidos:', data);
-        
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
 
 </script>
