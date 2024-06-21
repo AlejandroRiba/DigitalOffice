@@ -511,8 +511,9 @@ function verDocumentos(req, res){
                 }
                 const minutas = results.filter(archivo => archivo.tipo === 'Min');
                 const memorandos = results.filter(archivo => archivo.tipo === 'Memo');
+                const confidentialMemorandos = results.filter(archivo => archivo.tipo === 'Conf');
                 //const nombresArchivos = results.map(result => result.name);
-                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey, error: req.session.error});
+                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, confidentialMemorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey, error: req.session.error});
             });
         });
     } 
@@ -1059,6 +1060,58 @@ function pruebafirm(req, res) {
     });
 }
 
+function crearDocumento(req, res){
+    const { nombreDocumento } = req.body;
+    console.log('Nombre del Documento:', nombreDocumento);
+    filePathPriv = 'src/cifrados/' + nombreDocumento;
+    filePath = 'src/archivos/' + nombreDocumento;
+    try {
+        req.getConnection((err, conn) => {
+            conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [nombreDocumento, req.session.matricula], (err, res) => {
+                    if (err) {
+                        console.error("Error al ejecutar la consulta:", err);
+                        return;
+                    }
+                    const aesKeyC = res[0].kdest;
+                    req.getConnection((err, conn) => {
+                        conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, datos) => {
+                        if (err) {
+                            console.error('Error en la consulta:', err);
+                            return res.status(500).send('Error en la consulta');
+                        }
+                        const consulta = datos[0];
+                        const privateKey = obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password);
+                        // console.log("Matricula: " + req.session.matricula);
+                        // console.log("Session PrivateKey: ", req.session.privateKey);
+                        // console.log("Private key: " + privateKey);
+                        // console.log("AES key: " + aesKeyC)
+                        const aesKey = decryptAesKey(aesKeyC, privateKey);
+                        const documento = fs.readFileSync(filePathPriv, 'utf8');
+                        const signData = documento.toString('utf8')
+                        const [ivB64, encryptedB64] = signData.split(',');
+                        const ivBuffer = Buffer.from(ivB64, 'base64');
+                        const encryptedBuffer = Buffer.from(encryptedB64, 'base64');
+                        const decryptedBuffer = decryptFile(ivBuffer, encryptedBuffer, aesKey);
+                        const decryptedData = decryptedBuffer;
+                        fs.writeFileSync(filePath, decryptedData);
+                        res.json({
+                            success: true,
+                            message: 'Datos recibidos correctamente',
+                            data: {
+                                nombreDocumento: nombreDocumento,
+                                additionalInfo: 'Esta es información adicional de ejemplo'
+                            }
+                        });
+                    });
+                }); 
+            });
+        });
+    } catch (err) {
+        console.error('Error al leer el archivo de firmas:', err);
+        return res.status(404).send('Archivo de firmas no encontrado');
+    }
+}
+
 
 module.exports = {
     principal,
@@ -1075,5 +1128,6 @@ module.exports = {
     alerta,
     descargaclave,
     verDocumentos,
-    pruebafirm
+    pruebafirm,
+    crearDocumento
 }
