@@ -9,6 +9,7 @@ const fs = require('fs');
 
 const loginRoutes = require('./routes/login');
 const princRoutes = require('./routes/principal');
+const crifRoutes = require('./routes/cifrado');
 
 const app = express();
 app.set('port', 4000);
@@ -65,6 +66,7 @@ app.get('/', (req, res) => { //ruta raíz
 
 app.use('/', loginRoutes);
 app.use('/', princRoutes);
+app.use('/', crifRoutes);
 
 // Configurar Express para servir archivos estáticos
 app.use(express.static('public'));
