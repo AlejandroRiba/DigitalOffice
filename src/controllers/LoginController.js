@@ -1,26 +1,27 @@
 const crypto = require('crypto');
-const { use } = require('../routes/principal');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { copyStringIntoBuffer } = require('pdf-lib');
+const Utils = require('../controllers/Utils'); 
+const utils = new Utils();
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
 
-if (!fs.existsSync(uploadDir)) {
+if (!fs.existsSync(uploadDir)) { //Crea la carpeta archivos si aún no existe
     fs.mkdirSync(uploadDir);
 }
 
-const storage = multer.diskStorage({
+const storage = multer.diskStorage({ //para la subida de archivos
     destination: uploadDir,
     filename: function (req, file, cb) {
         cb(null, file.originalname);
     }
 });
 
-const upload = multer({ storage }).single('file');
+const upload = multer({ storage }).single('file'); //constante para la subida de archivos, esta es la que se manda a llamr
 
+//renderiza la página del login
 function login(req, res) {
     if(req.session.loggedin != true){
         res.render('login/index');
@@ -29,6 +30,27 @@ function login(req, res) {
     } 
 }
 
+//renderiza la página de registro
+function register(req, res) {
+    if(req.session.loggedin != true){
+        res.render('login/register');
+    } else{
+        res.redirect('/principal');
+    } 
+}
+
+//GENERA UN PAR UNICO DE CLAVES RSA 2048 bits - 256 bytes
+function generateUniqueKeyPair() {
+    const { publicKey, privateKey} = crypto.generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+        publicKeyEncoding: { type: 'spki', format: 'pem' },
+        privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+    });
+
+    return { publicKey, privateKey };
+}
+
+//COMPRUEBA DATOS DENTRO DEL LOGIN
 function auth(req, res){
     upload(req, res, function (err) {
         const filePath = path.join(uploadDir, req.file.originalname);
@@ -40,8 +62,8 @@ function auth(req, res){
                     conn.query('SELECT * FROM registros WHERE matricula = ? OR email = ?', [data.usuario, data.usuario], (err, datos) => {
                         if(datos.length > 0) {
                             const user = datos[0];
-                            if(comparePasswords(data.contras, user.password)){
-                                if(comparePasswords(filedata, user.comproba)){
+                            if(utils.comparePasswords(data.contras, user.password)){
+                                if(utils.comparePasswords(filedata, user.comproba)){
                                     req.session.loggedin = true;
                                     req.session.name = user.nombre;
                                     req.session.matricula = user.matricula;
@@ -64,88 +86,13 @@ function auth(req, res){
     });
 }
 
-function register(req, res) {
-    if(req.session.loggedin != true){
-        res.render('login/register');
-    } else{
-        res.redirect('/principal');
-    } 
-}
-
-function comparePasswords(plainPassword, hashedPassword) {
-    const hashedInputPassword = hashPassword(plainPassword);
-    return hashedInputPassword === hashedPassword;
-}
-
-function hashPassword(password) {
-    const hash = crypto.createHash('sha256')
-                       .update(password)
-                       .digest('hex');
-    return hash;
-}
-
-
-function generateUniqueKeyPair() {
-    const { publicKey, privateKey} = crypto.generateKeyPairSync('rsa', {
-        modulusLength: 2048,
-        publicKeyEncoding: { type: 'spki', format: 'pem' },
-        privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
-    });
-
-    return { publicKey, privateKey };
-}
-
-function removePemHeaders(pem) {
-    const pemLines = pem.split('\n');
-    const base64Lines = pemLines.filter(line => {
-        return line && !line.startsWith('-----BEGIN') && !line.startsWith('-----END');
-    });
-    return base64Lines.join('');
-}
-
-function XOR_hex(a, b) {
-    const buffer1 = Buffer.from(a, 'hex');
-    const buffer2 = Buffer.from(b, 'hex');
-
-    // Obtener la longitud máxima entre los dos buffers
-    const maxLength = Math.max(buffer1.length, buffer2.length);
-
-    // Realizar la operación XOR a nivel de bits
-    let result = '';
-    for (let i = 0; i < maxLength; i++) {
-        const byte1 = i < buffer1.length ? buffer1[i] : 0;
-        const byte2 = i < buffer2.length ? buffer2[i] : 0;
-        const xorResult = byte1 ^ byte2;
-        result += xorResult.toString(16).padStart(2, '0'); // Convertir resultado a hexadecimal
-    }
-
-    return result;
-}
-
-// Función para cifrar
-function encrypt(text, keyBuffer, iv) {
-    const cipher = crypto.createCipheriv('aes-256-ctr', keyBuffer, iv);
-    let encrypted = cipher.update(text, 'base64', 'base64'); 
-    encrypted += cipher.final('base64');
-    return encrypted;
-}
-
-function protectkey(usuario, password, privateKey){
-    const usr = hashPassword(usuario);
-    const pss = hashPassword(password);
-    const iv = crypto.randomBytes(16);
-    const key = XOR_hex(usr,pss);
-    const final = removePemHeaders(privateKey);
-    const keyBuffer = Buffer.from(key, 'hex');
-    const encryptedText = encrypt(final, keyBuffer, iv);
-    const privtofile = iv.toString('base64') + encryptedText;
-    return privtofile;
-}
-
+//REGISTRAR USUARIO
 function storeUser(req, res) {
     const data = req.body;
-    const hashedPassword = hashPassword(data.contras);
+    const hashedPassword = utils.calculateHash(data.contras, 'hex');
     const {publicKey, privateKey} = generateUniqueKeyPair();
+    console.log('Public key generada: ' + publicKey);
+    console.log('Private key generada: ' + privateKey);
     const userData = {
         matricula: data.matricula,
         password: hashedPassword,
@@ -155,8 +102,8 @@ function storeUser(req, res) {
         cargo: data.cargo,
         firma: publicKey
     };
-    const privtofile = protectkey(userData.matricula, data.contras, privateKey);
-    const comproba = hashPassword(privtofile);
+    const privtofile = utils.protectkey(userData.matricula, data.contras, privateKey);
+    const comproba = utils.calculateHash(privtofile, 'hex');
     
 
     req.getConnection((err, conn) => {
@@ -193,6 +140,7 @@ function storeUser(req, res) {
     });
 }
 
+//CERRAR SESIÓN
 function logout(req, res){
     
     req.getConnection((err, conn) => {
@@ -207,15 +155,17 @@ function logout(req, res){
             if (results.length > 0) {
                 const nombresArchivos = results.map(result => result.name);
                 nombresArchivos.forEach(name => {
-                    if(fs.existsSync(path.join(uploadDir, name))){
-                        fs.unlink(path.join(uploadDir, name), (err) => {
+                    // Agregar el prefijo "temp_" al nombre original
+                    const tempName = 'temp_' + name;
+                    if(fs.existsSync(path.join(uploadDir, tempName))){
+                        fs.unlink(path.join(uploadDir, tempName), (err) => {
                             if (err) {
                                 console.error('Error deleting file:', err);
                             }
                         });
                     }
                 });
-            }            
+            }                    
         });
     });
     if(req.session.loggedin == true){

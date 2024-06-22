@@ -1,10 +1,3 @@
-function hasheo() {
-    var data = document.getElementById('data').value;
-    var hashedData = CryptoJS.SHA256(data).toString();
-    document.getElementById('hashed_data').innerText = hashedData;
-    alert('Data hashed successfully.');
-}
-
 function actualizarFirmas(firmas) {
     var firmasCompletadasList = document.getElementById('firmasCompletadasList');
     var firmasPendientesList = document.getElementById('firmasPendientesList');

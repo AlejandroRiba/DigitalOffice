@@ -1,47 +1,89 @@
 const crypto = require('crypto');
-const cryptJS = require('crypto-js');
-const NodeRSA = require('node-rsa');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { fileLoader } = require('ejs');
-const { PDFDocument, rgb } = require('pdf-lib');
 const MemoryStream = require('memorystream');
 
 const Utils = require('../controllers/Utils'); 
 const utils = new Utils();
 
-
-
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '../archivos');
 const firmasDir = path.join(__dirname, '../firmas');
 
-if (!fs.existsSync(uploadDir)) {
+if (!fs.existsSync(uploadDir)) { //Genera carpeta de archivos si no existe
     fs.mkdirSync(uploadDir);
 }
 
-if (!fs.existsSync(firmasDir)) {
+if (!fs.existsSync(firmasDir)) { //genera carpeta de firmas si no existe
     fs.mkdirSync(firmasDir);
 }
-
-const storage = multer.diskStorage({
+ 
+const storage = multer.diskStorage({ //Para la subida de archivos
     destination: uploadDir,
     filename: function (req, file, cb) {
         cb(null, file.originalname);
     }
 });
 
-const upload = multer({ storage }).single('file');
+const upload = multer({ storage }).single('file'); //para manejar la subida de archivos
 
-const checkFileExists = (filePath) => {
-    return fs.promises.access(filePath, fs.constants.F_OK)
+const checkFileExists = (filePath) => {                     //FUNCIÓN ASÍNCRONA QUE UTILIZA UPLOAD DE MULTER
+    return fs.promises.access(filePath, fs.constants.F_OK) //comprueba si el archivo ya esta guardado
         .then(() => true)
         .catch(() => false);
 };
 
+function checkIfFileExists(filePath) { //FUNCIÓN SINCRONA
+    try {
+        // Verificar si el archivo existe
+        fs.accessSync(filePath, fs.constants.F_OK);
+        return true;
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            return false;
+        } else {
+            throw err;
+        }
+    }
+}
 
+//Realiza la misma consulta que en principal, solo que aquí vuelve a cargarlas una vez que se sube un archivo
+function actualizarNotificaciones(req, res, callback){
+    req.getConnection((err, conn) => {
+        if (err) {
+            console.error('Error connecting to the database:', err);
+            return res.status(500).send('Database connection error');
+        }
+        //aquí habría que hacer una de las comprobaciones de si ya firmó
+        conn.query('SELECT name,envia,firmas FROM archivos WHERE recibe != ?',[req.session.matricula], (err, results) => {
+            if (err) {
+                console.error('Error fetching users from the database:', err);
+            }
+            let notifications = utils.obtenerNotificaciones(results, req.session.matricula);
+            req.session.notifications = notifications;
+            callback();
+        });
+    });
+}
+//cambia la base de datos cuando se firma
+function actualizarBaseNotificaciones(req, res, firmas, archivo, callback){
+    req.getConnection((err, conn) => {
+        if (err) {
+            console.error('Error connecting to the database:', err);
+            return res.status(500).send('Database connection error');
+        }
+        //aquí habría que hacer una de las comprobaciones de si ya firmó
+        conn.query('UPDATE archivos SET firmas = ? WHERE name = ?',[firmas, archivo], (err, results) => {
+            if (err) {
+                console.error('Error fetching users from the database:', err);
+            }
+            callback();
+        });
+    });
+}
 
+//Funcion para manejar el renderizado y carga de datos de la pantalla principal
 function principal(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
@@ -56,11 +98,11 @@ function principal(req, res){
                 return res.status(500).send('Database connection error');
             }
             //aquí habría que hacer una de las comprobaciones de si ya firmó
-            conn.query('SELECT name,envia,firmas FROM archivos', (err, results) => {
+            conn.query('SELECT name,envia,firmas FROM archivos WHERE recibe != ?',[req.session.matricula], (err, results) => {
                 if (err) {
                     console.error('Error fetching users from the database:', err);
                 }
-                let notifications = obtenerNotificaciones(results, req.session.matricula);
+                let notifications = utils.obtenerNotificaciones(results, req.session.matricula);
                 req.session.notifications = notifications;
                 delete req.session.message;
                 delete req.session.doc;
@@ -70,34 +112,7 @@ function principal(req, res){
     } 
 }
 
-function obtenerNotificaciones(results, req_matricula){
-    let enviaValue = [];
-    for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        const firmas = result.firmas;
-        const pairs = firmas.split(', ');
-
-        for (let j = 0; j < pairs.length; j++) {
-            const pair = pairs[j];
-
-            const [matricula, estado] = pair.split(': ');
-
-            if (matricula === req_matricula && estado === 'no') {
-                const objeto = {
-                    name: result.name,
-                    matricula: result.envia
-                };
-
-                if(!enviaValue.includes(objeto)){
-                    enviaValue.push(objeto);
-                    break; 
-                }
-            }
-        }
-    }
-    return enviaValue;
-}
-
+//Funcion para manejar el renderizado y carga de datos de la pantalla de descarga de clave
 function alerta(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
@@ -112,30 +127,7 @@ function alerta(req, res){
     }
 }
 
-function visualizar(req, res){
-    if(req.session.loggedin != true){
-        res.redirect('/login');
-    } else{
-        req.getConnection((err, conn) => {
-            if (err) {
-                console.error('Error connecting to the database:', err);
-                return res.status(500).send('Database connection error');
-            }
-            //aquí habría que hacer una de las comprobaciones de si ya firmó
-            conn.query('SELECT name, envia, tipo FROM archivos', (err, archivos) => {
-                if (err) {
-                    console.error('Error fetching users from the database:', err);
-                }
-                const minutas = archivos.filter(archivo => archivo.tipo === 'Min');
-                const memorandos = archivos.filter(archivo => archivo.tipo === 'Memo');
-                delete req.session.message;
-                delete req.session.doc;
-                res.render('principal/visualizar', {name: req.session.name, minutas, memorandos , matricula: req.session.matricula, notifications: req.session.notifications, privateKey: req.session.privateKey});
-            });
-        });
-    } 
-}
-
+//Funcion para manejar el renderizado y carga de datos de la pantalla "SIGN DOCUMENT"
 function firmar(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
@@ -146,6 +138,7 @@ function firmar(req, res){
     } 
 }
 
+//Funcion para manejar el renderizado y carga de datos de la pantalla "UPLOAD CONFIDENTIAL MINUTE"
 function uploadf(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
@@ -171,6 +164,7 @@ function uploadf(req, res){
     } 
 }
 
+//Funcion para manejar el renderizado y carga de datos de la pantalla "UPLOAD MEMO"
 function uploadm(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
@@ -195,128 +189,7 @@ function uploadm(req, res){
     } 
 }
 
-function formatNames(names) {
-    if (typeof names === 'string') {
-        // Convertir la cadena JSON a un arreglo si es necesario
-        names = [names];
-    }
-
-    // Recorremos el arreglo de nombres y creamos una cadena formateada
-    const formattedString = names.map(name => `${name}: no`).join(', ');
-
-    return formattedString;
-}
-
-function uploadMinut(req, res) {
-    const tempUpload = multer({ storage: multer.memoryStorage() }).single('file');
-
-    tempUpload(req, res, function (err) {
-        const filePath = path.join(uploadDir, req.file.originalname);
-
-        checkFileExists(filePath)
-            .then(exists => {
-                if (exists) {
-                    if(req.session.loggedin != true){
-                        res.redirect('/login');
-                    } else{
-                        res.render('principal/subirminuta',  {name: req.session.name, users: req.session.users , notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey});
-                    }
-                }else{
-                    fs.writeFile(filePath, req.file.buffer, (err) => {
-                        const data = req.body;
-                        const firmasreq = data.users;
-                        const firmas = formatNames(firmasreq);
-                        const values = [
-                            req.file.originalname,
-                            data.source,
-                            firmas,
-                            'N/A',
-                            'Min',
-                            'N/A',
-                            'N/A'
-                        ];
-    
-                        req.getConnection((err, conn) => {
-                            if (err) {
-                                console.error('Connection error:', err);
-                                return res.status(500).json({ error: 'Error de conexión a la base de datos' });
-                            }
-    
-                            conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo, kdest, ksource) VALUES (?, ?, ?, ?, ?, ?, ?)', values, (err, result) => {
-                                if (err) {
-                                    console.error('Query error:', err);
-                                    return res.status(500).json({ error: 'Error en la consulta de la base de datos' });
-                                }
-    
-                                res.redirect('/principal');
-                            });
-                        });
-                    });
-                }
-                
-            })
-            .catch(err => {
-                console.error('Error al verificar el archivo:', err);
-                res.status(500).json({ error: 'Error al verificar el archivo' });
-            });
-    });
-}
-
-function uploadMemo(req, res) {
-    const tempUpload = multer({ storage: multer.memoryStorage() }).single('file');
-
-    tempUpload(req, res, function (err) {
-
-        const filePath = path.join(uploadDir, req.file.originalname);
-
-        checkFileExists(filePath)
-            .then(exists => {
-                if (exists) {
-                    if(req.session.loggedin != true){
-                        res.redirect('/login');
-                    } else{
-                        res.render('principal/subirmemo',  {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey});
-                    }
-                }
-
-                fs.writeFile(filePath, req.file.buffer, (err) => {
-                    const data = req.body;
-                    const receives = data.users;
-                    const firma = formatNames(req.session.matricula);
-                    // const values = [
-                    //     req.file.originalname,
-                    //     data.source,
-                    //     firmas,
-                    //     data.destiny,
-                    //     'Memo'
-                    // ];
-                    const values = [
-                        req.file.originalname,
-                        data.source,
-                        firma,
-                        'N/A',
-                        'Memo',
-                        'N/A',
-                        'N/A'
-                    ];
-                    req.getConnection((err, conn) => {
-                        conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo, kdest, ksource) VALUES (?, ?, ?, ?, ?, ?, ?)', values, (err, result) => {
-                            if (err) {
-                                console.error('Query error:', err);
-                                return;
-                                }
-                                res.redirect('/principal');
-                        });
-                    });
-                });
-            })
-            .catch(err => {
-                console.error('Error al verificar el archivo:', err);
-                res.status(500).json({ error: 'Error al verificar el archivo' });
-            });
-    });
-}
-
+//Funcion para manejar el renderizado y carga de datos de la pantalla "UPLOAD CONFIDENTIAL MEMO"
 function uploadmConfidential(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
@@ -339,92 +212,139 @@ function uploadmConfidential(req, res){
     } 
 }
 
-async function encryptAesKey(req, receive, key) {
-    return new Promise((resolve, reject) => {
+//Funcion para manejar el renderizado y carga de datos de la pantalla "View documents"
+function verDocumentos(req, res){
+    if(req.session.loggedin != true){
+        res.redirect('/login');
+    } else{
         req.getConnection((err, conn) => {
-            if (err) return reject(err);
-            conn.query('SELECT firma FROM registros WHERE matricula = ?', [receive], (err, result) => {
-                if (err) return reject(err);
-                if (!result.length) return reject(new Error('No se encontró el registro'));
-
-                const publicKeyDest = result[0].firma;
-                console.log(publicKeyDest); // Debe ser en formato PEM o DER
-
-                try {
-                    const encryptedKey = encryptWithPublicKey(publicKeyDest, key);
-                    resolve(encryptedKey);
-                } catch (error) {
-                    reject(new Error('Failed to encrypt key: ' + error.message));
+            if (err) {
+                console.error('Error connecting to the database:', err);
+                return res.status(500).send('Database connection error');
+            }
+            //aquí habría que hacer una de las comprobaciones de si ya firmó
+            conn.query('SELECT * FROM archivos WHERE recibe = ? OR recibe = "N/A"', [req.session.matricula], (err, results) => {
+                if (err) {
+                    console.error('Error fetching users from the database:', err);
                 }
+                const minutas = results.filter(archivo => archivo.tipo === 'Min');
+                const memorandos = results.filter(archivo => archivo.tipo === 'Memo');
+                const confidentialMemorandos = results.filter(archivo => archivo.tipo === 'Conf');
+                //const nombresArchivos = results.map(result => result.name);
+                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, confidentialMemorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey, error: req.session.error});
             });
         });
+    } 
+}
+
+//Función llamada con POST desde la pantalla "UPLOAD MINUTE"
+function uploadMinut(req, res) {
+    const tempUpload = multer({ storage: multer.memoryStorage() }).single('file');
+
+    tempUpload(req, res, function (err) {
+        const filePath = path.join(uploadDir, req.file.originalname);
+
+        checkFileExists(filePath)
+            .then(exists => {
+                if (exists) {
+                    if(req.session.loggedin != true){
+                        res.redirect('/login');
+                    } else{
+                        res.render('principal/subirminuta',  {name: req.session.name, users: req.session.users , notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey});
+                    }
+                }else{
+                    fs.writeFile(filePath, req.file.buffer, (err) => {
+                        const data = req.body;
+                        const firmasreq = data.users;
+                        const firmas = utils.formatNames(firmasreq);
+                        const values = [
+                            req.file.originalname,
+                            data.source,
+                            firmas,
+                            'N/A',
+                            'Min',
+                            'N/A',
+                            'N/A'
+                        ];
+    
+                        req.getConnection((err, conn) => {
+                            if (err) {
+                                console.error('Connection error:', err);
+                                return res.status(500).json({ error: 'Error de conexión a la base de datos' });
+                            }
+    
+                            conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo, kdest, ksource) VALUES (?, ?, ?, ?, ?, ?, ?)', values, (err, result) => {
+                                if (err) {
+                                    console.error('Query error:', err);
+                                    return res.status(500).json({ error: 'Error en la consulta de la base de datos' });
+                                }
+                                actualizarNotificaciones(req, res, () => {
+                                    res.redirect('/firmar');
+                                });
+                            });
+                        });
+                    });
+                }
+                
+            })
+            .catch(err => {
+                console.error('Error al verificar el archivo:', err);
+                res.status(500).json({ error: 'Error al verificar el archivo' });
+            });
     });
 }
 
+//Función llamada con POST desde la pantalla "UPLOAD MEMO"
+function uploadMemo(req, res) {
+    const tempUpload = multer({ storage: multer.memoryStorage() }).single('file');
 
-function encryptWithPublicKey(publicKey, aesKey) {
-    const buffer = Buffer.from(aesKey, 'utf8');
-    const encryptedKey = crypto.publicEncrypt(
-      {
-        key: publicKey,
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, // Asegúrate de usar el acolchado correcto
-        oaepHash: 'sha256', // Si usas acolchado OAEP
-      },
-      buffer
-    );
-    return encryptedKey.toString('base64');
-}
+    tempUpload(req, res, function (err) {
 
-function decryptAesKey(encryptedAesKey, privateKey) {
-    try {
-      const buffer = Buffer.from(encryptedAesKey, 'base64');
-      const decryptedKey = crypto.privateDecrypt(
-        {
-          key: privateKey,
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING, // Asegúrate de usar el acolchado correcto
-          oaepHash: 'sha256', // Si usas acolchado OAEP
-        },
-        buffer
-      );
-      return decryptedKey.toString('base64');
-    } catch (error) {
-      console.error('Fallo en el descifrado:', error);
-      throw error; // Maneja el error adecuadamente
-    }
-}
+        const filePath = path.join(uploadDir, req.file.originalname);
 
+        checkFileExists(filePath)
+            .then(exists => {
+                if (exists) {
+                    if(req.session.loggedin != true){
+                        res.redirect('/login');
+                    } else{
+                        res.render('principal/subirmemo',  {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey});
+                    }
+                }
 
-async function generateAesKey(req) {
-    return new Promise((resolve, reject) => {
-        req.getConnection((err, conn) => {
-            if (err) return reject(err);
-            conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, result) => {
-                if (err) return reject(err);
-                if (!result.length) return reject(new Error('No se encontró el registro'));
-                const key128 = crypto.randomBytes(32);
-                resolve(key128);
+                fs.writeFile(filePath, req.file.buffer, (err) => {
+                    const data = req.body;
+                    const firma = utils.formatNames(req.session.matricula);
+                    const values = [
+                        req.file.originalname,
+                        data.source,
+                        firma,
+                        'N/A',
+                        'Memo',
+                        'N/A',
+                        'N/A'
+                    ];
+                    req.getConnection((err, conn) => {
+                        conn.query('INSERT INTO archivos (name, envia, firmas, recibe, tipo, kdest, ksource) VALUES (?, ?, ?, ?, ?, ?, ?)', values, (err, result) => {
+                            if (err) {
+                                console.error('Query error:', err);
+                                return;
+                                }
+                            actualizarNotificaciones(req, res, () => {
+                                res.redirect('/firmar');
+                            });
+                        });
+                    });
+                });
+            })
+            .catch(err => {
+                console.error('Error al verificar el archivo:', err);
+                res.status(500).json({ error: 'Error al verificar el archivo' });
             });
-        });
     });
 }
 
-function encryptFile(buffer, aesKey) {
-    const iv = crypto.randomBytes(16); // Generar un IV de 16 bytes
-    const cipher = crypto.createCipheriv('aes-256-ctr', aesKey, iv);
-    let encrypted = cipher.update(buffer);
-    encrypted = Buffer.concat([encrypted, cipher.final()]);
-    return { iv, encrypted };
-}
-
-function decryptFile(iv, encrypted, aesKey64) {
-    const aesKey = Buffer.from(aesKey64, 'base64');
-    const decipher = crypto.createDecipheriv('aes-256-ctr', aesKey, iv);
-    let decrypted = decipher.update(encrypted);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return decrypted;
-}
-
-
+//Función llamada con POST desde la pantalla "UPLOAD CONFIDENTIAL MEMO"
 async function uploadMemoConfidential(req, res) {
     const tempUpload = multer({ storage: multer.memoryStorage() }).single('file');
 
@@ -448,16 +368,13 @@ async function uploadMemoConfidential(req, res) {
 
             const data = req.body;
             const receives = data.users;
-            const aesKey = await generateAesKey(req);
-            // console.log("AES key Generada: " + aesKey.toString('base64'));
+            const aesKey = crypto.randomBytes(32); //Clave de AES 256 bits
+            console.log("AES key Generada: " + aesKey.toString('base64'));
 
             // Cifrar el archivo con la clave AES
-            const { iv, encrypted } = encryptFile(req.file.buffer, aesKey);
+            const { iv, encrypted } = utils.encryptFile(req.file.buffer, aesKey);
             const ivBase64 = iv.toString('base64');
             const encryptedBase64 = encrypted.toString('base64');
-
-            // console.log("IV Generada: " + ivBase64);
-            // console.log("Encrypted Generado: " + encryptedBase64);
 
             const encryptedData = ivBase64 + ',' + encryptedBase64;
 
@@ -465,14 +382,14 @@ async function uploadMemoConfidential(req, res) {
             await fs.promises.writeFile(filePath, encryptedData);
 
             const encryptedKeys = await Promise.all(receives.map(async (user) => {
-                const encryptedKey = await encryptAesKey(req, user, aesKey);
+                const encryptedKey = await utils.encryptAesKey(req, user, aesKey);
                 return {
                     receive: user,
                     encryptedKey: encryptedKey.toString('base64')
                 };
             }));
 
-            const firma = formatNames(req.session.matricula);
+            const firma = utils.formatNames(req.session.matricula);
 
             try {
                 const insertPromises = encryptedKeys.map(({ receive, encryptedKey }) => {
@@ -498,7 +415,9 @@ async function uploadMemoConfidential(req, res) {
                 });
 
                 await Promise.all(insertPromises);
-                res.redirect('/principal');
+                actualizarNotificaciones(req, res, () => {
+                    res.redirect('/firmar');
+                });
             } catch (err) {
                 console.error('Database query error:', err);
                 res.status(500).json({ error: 'Database query error' });
@@ -510,95 +429,20 @@ async function uploadMemoConfidential(req, res) {
     });
 }
 
-function verDocumentos(req, res){
-    if(req.session.loggedin != true){
-        res.redirect('/login');
-    } else{
-        req.getConnection((err, conn) => {
-            if (err) {
-                console.error('Error connecting to the database:', err);
-                return res.status(500).send('Database connection error');
-            }
-            //aquí habría que hacer una de las comprobaciones de si ya firmó
-            conn.query('SELECT * FROM archivos WHERE recibe = ? OR recibe = "N/A"', [req.session.matricula], (err, results) => {
-                if (err) {
-                    console.error('Error fetching users from the database:', err);
-                }
-                const minutas = results.filter(archivo => archivo.tipo === 'Min');
-                const memorandos = results.filter(archivo => archivo.tipo === 'Memo');
-                const confidentialMemorandos = results.filter(archivo => archivo.tipo === 'Conf');
-                //const nombresArchivos = results.map(result => result.name);
-                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, confidentialMemorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey, error: req.session.error});
-            });
-        });
-    } 
-}
-
-function obtenerDocumentos(results, req_matricula){
-    let enviaValue = [];
-    for (let i = 0; i < results.length; i++) {
-        const result = results[i];
-        const firmas = result.firmas;
-        const pairs = firmas.split(', ');
-
-        for (let j = 0; j < pairs.length; j++) {
-            const pair = pairs[j];
-
-            const [matricula, estado] = pair.split(': ');
-
-            if (matricula === req_matricula && estado === 'no') {
-                const objeto = {
-                    name: result.name,
-                    matricula: result.envia
-                };
-
-                if(!enviaValue.includes(objeto)){
-                    enviaValue.push(objeto);
-                    break; 
-                }
-            }
-        }
-    }
-    return enviaValue;
-}
-
-
-
-function calculateHash(data) {
-    const hash = crypto.createHash('sha256');
-    hash.update(data);
-    return hash.digest('base64');
-}
-
-
-
-function signDocument(hash, privateKey) {
-    const sign = crypto.createSign('RSA-SHA256');
-    sign.update(hash);
-    return sign.sign(privateKey, 'base64');
-}
-
-function verifySignature(message, signature, publicKey) {
-    const verifier = crypto.createVerify('RSA-SHA256');
-    verifier.update(message);
-    return verifier.verify(publicKey, Buffer.from(signature, 'base64'));
-}
 
 // Función para verificar el documento firmado
 function verifySignedDocument(documentContent, signatureDoc, publicKey) {
     // Calcular el hash del contenido del documento
-    const documentHash = calculateHash(documentContent);
+    const documentHash = utils.calculateHash(documentContent, 'base64');
     for (let signature of signatureDoc) {
-        if (verifySignature(documentHash, signature, publicKey)) {
+        if (utils.verifySignature(documentHash, signature, publicKey)) {
             return true;  // Devuelve true y sale de la función en cuanto encuentre una coincidencia válida
         }
     }
     return false;  // Si no se encuentra ninguna coincidencia válida, devuelve false
 }
 
-
-
-
+//Función llamada con POST desde la pantalla "SIGN DOCUMENT"
 function generatesignature(req, res){
     const data = req.body;
     if(req.session.matricula !== data.user) {
@@ -620,7 +464,7 @@ function generatesignature(req, res){
 
             if (datos.length > 0) {
                 const consulta = datos[0];
-                if (comparePasswords(data.confcontra, consulta.password)) {
+                if (utils.comparePasswords(data.confcontra, consulta.password)) {
                     const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, data.confcontra, true);
 
                     // Definir dos posibles rutas de archivo
@@ -645,8 +489,8 @@ function generatesignature(req, res){
                         }
                     }
 
-                    const documentHash = calculateHash(dataDocument);
-                    const signature = signDocument(documentHash, privateKey);
+                    const documentHash = utils.calculateHash(dataDocument, 'base64');
+                    const signature = utils.signDocument(documentHash, privateKey);
 
                     const query = 'SELECT firmas FROM archivos WHERE name = ?';
                     const name = [data.nombreArchivoSeleccionado];
@@ -656,43 +500,52 @@ function generatesignature(req, res){
                             console.error('Error en la consulta:', err);
                             return res.status(500).send('Error en la consulta');
                         }
+                        if (results.length > 0) {
+                            let firmas = results[0].firmas;
+                            let signedDocument;
+                            let filePathPriv;
 
-                        let signedDocument;
-                        let filePathPriv;
-
-                        // Definir la ruta de guardado dependiendo de la ruta de lectura usada
-                        if (filePathToUse === filePath1) {
-                            filePathPriv = 'src/firmas/' + removeExtension(data.nombreArchivoSeleccionado) + '.txt';
-                            if (!checkIfFileExists(filePathPriv)) {
-                                signedDocument = `-SIGNATURE-${signature}`;
-                            } else {
-                                const dataDocumentSign = fs.readFileSync(filePathPriv, 'utf8');
-                                signedDocument = `${dataDocumentSign}-SIGNATURE-${signature}`;
-                            }
-                            fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
-                        } 
-                        else {
-                            filePathPriv = 'src/firmasCifradas/' + removeExtension(data.nombreArchivoSeleccionado) + '.txt';
-                            req.getConnection((err, conn) => {
+                            // Definir la ruta de guardado dependiendo de la ruta de lectura usada
+                            if (filePathToUse === filePath1) {
+                                filePathPriv = 'src/firmas/' + utils.removeExtension(data.nombreArchivoSeleccionado) + '.txt';
+                                if (!checkIfFileExists(filePathPriv)) {
+                                    signedDocument = `-SIGNATURE-${signature}`;
+                                } else {
+                                    const dataDocumentSign = fs.readFileSync(filePathPriv, 'utf8');
+                                    signedDocument = `${dataDocumentSign}-SIGNATURE-${signature}`;
+                                }
+                                fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
+                                //success
+                                firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
+                                actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {
+                                    res.redirect('/principal');
+                                });
+                            } 
+                            else {
+                                filePathPriv = 'src/firmasCifradas/' + utils.removeExtension(data.nombreArchivoSeleccionado) + '.txt';
+                                
                                 conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [data.nombreArchivoSeleccionado, req.session.matricula], (err, res) => {
                                     if (err) {
                                         console.error("Error al ejecutar la consulta:", err);
-                                        // Manejar el error apropiadamente
                                         return;
                                     }
                             
                                     const aesKeyC = res[0].kdest;
-                                    const aesKey = decryptAesKey(aesKeyC, privateKey);
+                                    const aesKey = utils.decryptAesKey(aesKeyC, privateKey);
                                     console.log('Llave de AES: '+aesKey);
 
                                     if (!checkIfFileExists(filePathPriv)) {
                                         signedDocument = `-SIGNATURE-${signature}`;
                                         const signedBuffer = Buffer.from(signedDocument, 'utf8');
-                                        const {iv, encrypted} = encryptFile(signedBuffer, Buffer.from(aesKey,'base64'));
+                                        const {iv, encrypted} = utils.encryptFile(signedBuffer, Buffer.from(aesKey,'base64'));
                                         const ivBase64 = iv.toString('base64');
                                         const encryptedBase64 = encrypted.toString('base64');
                                         const encryptedData = ivBase64 + ',' + encryptedBase64;
                                         fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
+                                        firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
+                                        actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {
+                                            res.redirect('/principal');
+                                        });
                                     } else {
                                         const signDataBuffer = fs.readFileSync(filePathPriv, 'utf8');
                                         const signData = signDataBuffer.toString('utf8')
@@ -700,43 +553,26 @@ function generatesignature(req, res){
                                         const ivBuffer = Buffer.from(ivB64, 'base64');
                                         const encryptedBuffer = Buffer.from(encryptedB64, 'base64');
                                         try {
-                                            const decryptedBuffer = decryptFile(ivBuffer, encryptedBuffer, aesKey);
+                                            const decryptedBuffer = utils.decryptFile(ivBuffer, encryptedBuffer, aesKey);
                                             const decryptedData = decryptedBuffer.toString('utf8');
                                             console.log("Decryted data: " + decryptedData);
                                             signedDocument = `${decryptedData}-SIGNATURE-${signature}`;
                                             const signedBuffer = Buffer.from(signedDocument, 'utf8');
-                                            const {iv, encrypted} = encryptFile(signedBuffer, Buffer.from(aesKey,'base64'));
+                                            const {iv, encrypted} = utils.encryptFile(signedBuffer, Buffer.from(aesKey,'base64'));
                                             const ivBase64 = iv.toString('base64');
                                             const encryptedBase64 = encrypted.toString('base64');
                                             const encryptedData = ivBase64 + ',' + encryptedBase64;
                                             fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
+                                            firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
+                                            actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {
+                                                res.redirect('/principal');
+                                            });
                                         } catch (error) {
                                             console.error("Error al descifrar los datos:", error);
                                         }
-                                    }
+                                    }   
                                 });
-                            });
-                        }
-                        if (results.length > 0) {
-                            let firmas = results[0].firmas;
-                            firmas = cambiarEstadoMatricula(firmas, req.session.matricula);
-                            const queryUpdate = 'UPDATE archivos SET firmas = ? WHERE name = ?';
-                            const firmasModificadas = [firmas, data.nombreArchivoSeleccionado];
-
-                            conn.query(queryUpdate, firmasModificadas, (err, result) => {
-                                if (err) {
-                                    console.error("Error al actualizar el campo", err);
-                                    return res.status(500).send('Error al actualizar el campo');
-                                }
-
-                                if (result.affectedRows === 0) {
-                                    return res.status(404).send('Entrada no encontrada');
-                                }
-
-                                req.session.notifications = actualizarNotificaciones(req, res);
-                                res.redirect('/principal');
-                            });
-
+                            }
                         } else {
                             console.log('No se encontraron resultados.');
                             res.redirect('/principal');
@@ -754,81 +590,8 @@ function generatesignature(req, res){
     });
 }
 
-function getAESKeyC(req, fileName){
-    req.getConnection((err, conn)=>{
-        conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [fileName, req.session.matricula], (err, res)=>{
-            return res[0];
-        });
-    });
-}
 
-function actualizarNotificaciones(req, res){
-    req.getConnection((err, conn) => {
-        if (err) {
-            console.error('Error connecting to the database:', err);
-            return res.status(500).send('Database connection error');
-        }
-        //aquí habría que hacer una de las comprobaciones de si ya firmó
-        conn.query('SELECT name,envia,firmas FROM archivos', (err, results) => {
-            if (err) {
-                console.error('Error fetching users from the database:', err);
-            }
-            let notifications = obtenerNotificaciones(results, req.session.matricula);
-            req.session.notifications = notifications;
-            return notifications;
-        });
-    });
-}
-
-function removeExtension(filePath) {
-    const parsedPath = path.parse(filePath);
-    return parsedPath.name;
-}
-
-const cambiarEstadoMatricula = (cadena, matricula) => {
-    // Usar una expresión regular para encontrar y reemplazar el valor "no" por "si" para la matrícula específica
-    const regex = new RegExp(`(${matricula}:\\s*)no`, 'g');
-    const nuevaCadena = cadena.replace(regex, `$1si`);
-  
-    return nuevaCadena;
-  };
-
-async function removeSignaturesFromPDF(inputFilePath, outputFilePath) {
-    try {
-        // Leer el archivo PDF
-        const pdfBytes = fs.readFileSync(inputFilePath);
-
-        // Cargar el documento PDF usando pdf-lib
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-
-        // Eliminar firmas o datos adicionales según sea necesario
-        // Aquí se puede implementar la lógica específica para detectar y eliminar firmas del PDF
-
-        // Guardar el archivo modificado
-        const modifiedPdfBytes = await pdfDoc.save();
-
-        fs.writeFileSync(outputFilePath, modifiedPdfBytes);
-
-        console.log(`Firmas eliminadas correctamente. Documento guardado en: ${outputFilePath}`);
-    } catch (error) {
-        console.error('Error al eliminar firmas y guardar el documento:', error);
-    }
-}
-
-function checkIfFileExists(filePath) {
-    try {
-        // Verificar si el archivo existe
-        fs.accessSync(filePath, fs.constants.F_OK);
-        return true;
-    } catch (err) {
-        if (err.code === 'ENOENT') {
-            return false;
-        } else {
-            throw err;
-        }
-    }
-}
-
+//Función para descargar el archivo de clave privada
 function descargaclave(req, res){
     const protectKeyResult = req.session.protectKey;
 
@@ -850,170 +613,149 @@ function descargaclave(req, res){
     stream.pipe(res);
 }
 
-function generateaes(req, res){
-    const data = req.body;
-    req.getConnection((err, conn) => { //sacar llave privada
-        conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, datos) => {
-            if(datos.length > 0) {
-                /* const consulta = datos[0];
-                const key128 = crypto.randomBytes(16);
-                console.log('Clave AES: ',key128.toString('base64'));
-                const buff = Buffer.from(consulta.firma, 'utf-8');
-                
-                const cryp = encryptWithPublicKey(buff, key128);
-                console.log(cryp.toString('base64')); */
-                conn.query('SELECT * FROM archivos WHERE name = ?', ['VHDL.txt'], (err, datos) =>{
-                    const cryp = datos[0].kdest;
-                    const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, data.user, true);
-                    const decr = decryptAesKey(cryp,privateKey);
-                    console.log('Clave descifrada: ',decr);
-                });
-            }else{
-                console.log("no hay nada");
-            }
-        });
-    });
-}
-
-function pruebafirm(req, res) {
-    delete req.session.message;
-    delete req.session.error;
-    delete req.session.doc;
-    const nombreDocumento = req.body.nombreArchivo;
-    const filePath1 = 'src/archivos/' + nombreDocumento;
-    const filePath2 = 'src/cifrados/' + nombreDocumento;
-
-    let dataDocument;
-    let dataFirmas;
-    let filePathToUse;
-
-    // Intentar leer desde filePath1
+//Función que se manda a llamar desde la pantalla ver documentos para comprobar las firmas
+async function pruebafirm(req, res) {
     try {
-        dataDocument = fs.readFileSync(filePath1, 'utf8');
-        filePathToUse = filePath1;
-    } catch (err) {
-        // Si hay error al leer desde filePath1, intentar desde filePath2
+        delete req.session.message;
+        delete req.session.error;
+        delete req.session.doc;
+        const nombreOriginal = req.body.nombreArchivo;
+        let nombreDocumento;
+        if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
+            nombreDocumento = nombreOriginal.substring(5);
+        }else{
+            nombreDocumento = nombreOriginal;
+        }
+
+        const filePath1 = 'src/archivos/' + nombreDocumento;
+        const filePath2 = 'src/cifrados/' + nombreDocumento;
+
+        let dataDocument;
+        let dataFirmas;
+        let filePathToUse;
+
+        // Intentar leer desde filePath1
         try {
+            dataDocument = fs.readFileSync(filePath1, 'utf8');
+            filePathToUse = filePath1;
+        } catch (err) {
+            // Si hay error al leer desde filePath1, intentar desde filePath2
             dataDocument = fs.readFileSync(filePath2, 'utf8');
             filePathToUse = filePath2;
-        } catch (err) {
-            console.error('Error al leer el archivo:', err);
-            return res.status(404).send('Archivo no encontrado en ninguna ubicación');
-        }
-    }
-
-    req.getConnection((err, conn) => {
-        if (err) {
-            console.error('Error al obtener la conexión:', err);
-            return res.status(500).send('Error al obtener la conexión');
         }
 
-        const query = 'SELECT firmas FROM archivos WHERE name = ?';
-        const name = [nombreDocumento];
+        // Obtener conexión
+        const conn = await new Promise((resolve, reject) => {
+            req.getConnection((err, connection) => {
+                if (err) reject(err);
+                resolve(connection);
+            });
+        });
 
-        conn.query(query, name, (err, results) => {
-            if (err) {
-                console.error('Error en la consulta:', err);
-                return res.status(500).send('Error en la consulta');
+        // Realizar consulta para ver las firmas del documento actual
+        const results = await new Promise((resolve, reject) => {
+            conn.query('SELECT firmas FROM archivos WHERE name = ?', [nombreDocumento], (err, results) => {
+                if (err) reject(err);
+                resolve(results);
+            });
+        });
+
+        // Si acasi algo sale mal con la consulta anterior
+        if (results.length === 0) {
+            console.log('No se encontraron resultados.');
+            return res.redirect('/principal');
+        }
+
+        //separa el arreglo de las firmas
+        const firmasArray = results[0].firmas.split(',');
+
+        // Verificar si al menos uno ha firmado, sino que no haga todo lo demás
+        const hayFirmas = firmasArray.some(firma => firma.trim().split(':')[1].trim() === 'si');
+
+        if (!hayFirmas) {
+            req.session.message = `The necessary signatures have not yet been completed for: ${nombreDocumento}`;
+            if ((nombreOriginal).startsWith('temp_')) { //para cuando generamos los archivos descifrados.
+                nombreDocumento = nombreOriginal; //originalmente estabamos viendo un archivo cifrado
             }
+            req.session.doc = nombreDocumento;
+            return res.redirect('/verDocumentos');
+        }
 
-            if (results.length === 0) {
-                console.log('No se encontraron resultados.');
-                return res.redirect('/principal');
-            }
+        let filePathPriv;
 
-            let filePathPriv;
+        // Definir la ruta de lectura de firmas dependiendo de la ruta de lectura del doc usada
+        if (filePathToUse === filePath1) {
+            filePathPriv = 'src/firmas/' + utils.removeExtension(nombreDocumento) + '.txt';
+            dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
+        } else {
+            filePathPriv = 'src/firmasCifradas/' + utils.removeExtension(nombreDocumento) + '.txt';
 
-            // Definir la ruta de lectura de firmas dependiendo de la ruta de lectura del doc usada
-            if (filePathToUse === filePath1) {
-                filePathPriv = 'src/firmas/' + removeExtension(nombreDocumento) + '.txt';
-                try {
-                    dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
-                } catch (err) {
-                    console.error('Error al leer el archivo de firmas:', err);
-                    return res.status(404).send('Archivo de firmas no encontrado');
-                }
-            } else {
-                filePathPriv = 'src/firmasCifradas/' + removeExtension(nombreDocumento) + '.txt';
-                try {
-                    req.getConnection((err, conn) => {
-                        conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [data.nombreArchivoSeleccionado, req.session.matricula], (err, res) => {
-                            if (err) {
-                                console.error("Error al ejecutar la consulta:", err);
-                                return;
-                            }
-                            const aesKeyC = res[0].kdest;
-                            req.getConnection((err, conn) => {
-                                conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, datos) => {
-                                    if (err) {
-                                        console.error('Error en la consulta:', err);
-                                        return res.status(500).send('Error en la consulta');
-                                    }
-                                    const consulta = datos[0];
-                                    const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password, false);
-                                    const aesKey = decryptAesKey(aesKeyC, privateKey);
-                                    dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
-                                    const signData = dataFirmas.toString('utf8')
-                                    const [ivB64, encryptedB64] = signData.split(',');
-                                    const ivBuffer = Buffer.from(ivB64, 'base64');
-                                    const encryptedBuffer = Buffer.from(encryptedB64, 'base64');
-                                    const decryptedBuffer = decryptFile(ivBuffer, encryptedBuffer, aesKey);
-                                    const decryptedData = decryptedBuffer.toString('utf8');
-                                    dataFirmas = decryptedData; 
-                                });
-                            });
-                        });
-                    });
-                    
-                    //  AQUI HAY QUE HACER EL AJUSTE PARA QUE SE MANDE A LLAMAR A LA FUNCIÓN DE DESCIFRADO
-                } catch (err) {
-                    console.error('Error al leer el archivo de firmas:', err);
-                    return res.status(404).send('Archivo de firmas no encontrado');
-                }
-            }
-
-            let firmasValidas = true;
-            const dataFirmasArray = dataFirmas.split('-SIGNATURE-');
-            dataFirmasArray.shift()
-            console.log(dataFirmasArray);
-            const firmasArray = results[0].firmas.split(','); // Suponiendo que las firmas estén separadas por comas
-            const verificarFirmas = firmasArray.map(firma => {
-                const [matricula, status] = firma.trim().split(':');
-                if (status.trim() === 'si') {
-                    return new Promise((resolve, reject) => {
-                        conn.query('SELECT firma FROM registros WHERE matricula = ?', [matricula], (err, consulta) => {
-                            if (err) {
-                                console.error('Error en la consulta:', err);
-                                return reject('Error en la consulta');
-                            }
-                            const publicKey = consulta[0];
-                            if (!verifySignedDocument(dataDocument, dataFirmasArray, publicKey.firma)) { // si da un false, sería documento corrupto
-                                firmasValidas = false;
-                            }
-                            resolve();
-                        });
-                    });
-                }
-                return Promise.resolve();
+            const datos = await new Promise((resolve, reject) => {
+                conn.query('SELECT * FROM registros WHERE matricula = ?', [req.session.matricula], (err, datos) => {
+                    if (err) reject(err);
+                    resolve(datos[0]);
+                });
             });
 
-            Promise.all(verificarFirmas)
-                .then(() => {
-                    if (firmasValidas) {
-                        req.session.message = `Firmas de: ${nombreDocumento} verificadas. Documento integro.`;
-                    } else {
-                        req.session.error  = `Firmas de: ${nombreDocumento} incorrectas. Documento corrupto.`;
-                    }
-                    req.session.doc = nombreDocumento;
-                    res.redirect('/verDocumentos');
-                })
-                .catch(error => {
-                    console.error('Error en la verificación de firmas:', error);
-                    res.status(500).send('Error en la verificación de firmas');
+            console.log('SE OBTIENEN LOS DATOS DEL USUARIO DE LA SESION');
+            const res = await new Promise((resolve, reject) => {
+                conn.query('SELECT * FROM archivos WHERE recibe = ? AND name = ?', [req.session.matricula, nombreDocumento], (err, res) => {
+                    if (err) reject(err);
+                    resolve(res);
                 });
+            });
+
+            const aesKeyC = res[0].kdest;
+            const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, datos.password, false);
+            const aesKey = utils.decryptAesKey(aesKeyC, privateKey);
+            dataFirmas = fs.readFileSync(filePathPriv, 'utf8');
+            const signData = dataFirmas.toString('utf8');
+            const [ivB64, encryptedB64] = signData.split(',');
+            const ivBuffer = Buffer.from(ivB64, 'base64');
+            const encryptedBuffer = Buffer.from(encryptedB64, 'base64');
+            const decryptedBuffer = utils.decryptFile(ivBuffer, encryptedBuffer, aesKey);
+            dataFirmas = decryptedBuffer.toString('utf8');
+        }
+
+        let firmasValidas = true;
+        const dataFirmasArray = dataFirmas.split('-SIGNATURE-');
+        dataFirmasArray.shift();
+
+        const verificarFirmas = firmasArray.map(async firma => {
+            const [matricula, status] = firma.trim().split(':');
+            if (status.trim() === 'si') {
+                const consulta = await new Promise((resolve, reject) => {
+                    conn.query('SELECT firma FROM registros WHERE matricula = ?', [matricula], (err, consulta) => {
+                        if (err) reject(err);
+                        resolve(consulta[0]);
+                    });
+                });
+                const publicKey = consulta.firma;
+                if (!verifySignedDocument(dataDocument, dataFirmasArray, publicKey)) {
+                    firmasValidas = false;
+                }
+            }
         });
-    });
+
+        await Promise.all(verificarFirmas);
+
+        if (firmasValidas) {
+            req.session.message = `Signatures for: ${nombreDocumento} verified. Document intact.`;
+        } else {
+            req.session.error = `*WARNING! Signatures for: ${nombreDocumento} incorrect. Document corrupted.`;
+        }
+        if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
+            nombreDocumento = nombreOriginal;
+        }
+        req.session.doc = nombreDocumento;
+        res.redirect('/verDocumentos');
+    } catch (error) {
+        console.error('Error en la función pruebafirm:', error);
+        res.status(500).send('Error en la función pruebafirm');
+    }
 }
+
+
 
 module.exports = {
     principal,
@@ -1023,8 +765,6 @@ module.exports = {
     firmar,
     uploadMemo,
     uploadm,
-    visualizar,
-    generateaes,
     uploadmConfidential,
     uploadMemoConfidential,
     alerta,

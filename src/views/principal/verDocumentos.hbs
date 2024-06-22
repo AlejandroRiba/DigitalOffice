@@ -67,7 +67,6 @@
                             setTimeout(function() {
                                 var alert = document.getElementById('customMess');
                                 if (alert) {
-                                    console.log(firmas);
                                     alert.classList.add('hide');
                                     alert.addEventListener('transitionend', function() {
                                         alert.remove();
@@ -98,7 +97,6 @@
                             setTimeout(function() {
                                 var alert = document.getElementById('customErr');
                                 if (alert) {
-                                    console.log(firmas);
                                     alert.classList.add('hide');
                                     alert.addEventListener('transitionend', function() {
                                         alert.remove();
@@ -120,9 +118,7 @@
         var urlDocumento = obtenerURLDocumento(nombreDocumento); // Obtener la URL del documento según su nombre
         var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
         console.log("Cargando documento:", urlDocumento); // Log para verificar la URL generada
-        console.log("Firmas:", firmas); // Log para verificar las firmas
         document.getElementById('nombreArchivo').value = nombreDocumento;
-        
         var iframe = document.getElementById('documentoFrame');
         iframe.src = urlDocumento; // Cargar el documento en el iframe
         
@@ -166,9 +162,9 @@
             console.error('Error:', error);
         }
         
-        var urlDocumento = obtenerURLDocumento(nombreDocumento); // Obtener la URL del documento según su nombre
+        var urlDocumento = obtenerURLDocumento('temp_'+nombreDocumento); // Obtener la URL del documento según su nombre
         var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
-        document.getElementById('nombreArchivo').value = nombreDocumento;
+        document.getElementById('nombreArchivo').value = 'temp_'+nombreDocumento;
         var iframe = document.getElementById('documentoFrame');
         iframe.src = urlDocumento; // Cargar el documento en el iframe
         

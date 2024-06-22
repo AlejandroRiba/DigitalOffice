@@ -36,7 +36,7 @@ app.use(bodyParser.json());
 app.use(myConnection(mysql, {
     host: 'localhost',
     user: 'root',
-    password: 'root',
+    password: '',
     port: '3306',
     database: 'employees'
 }));
@@ -56,9 +56,10 @@ app.get('/', (req, res) => { //ruta raíz
         if (req.session.protectKey && req.session.protectKey.trim() !== '') {
             delete req.session.protectKey; //si la sesión esta iniciada y cambió de página, se borra el nombre del arch. temporal.
         }
-        delete req.session.message;
+        /* delete req.session.message;
         delete req.session.doc;
-        res.render('principal/index', {name: req.session.name, notifications: req.session.notifications, privateKey: req.session.privateKey});
+        res.render('principal/index', {name: req.session.name, notifications: req.session.notifications, privateKey: req.session.privateKey}); */
+        res.redirect('/principal');
     } else{
         res.render('home');
     }
