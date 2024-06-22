@@ -83,6 +83,18 @@ function actualizarBaseNotificaciones(req, res, firmas, archivo, callback){
     });
 }
 
+// Función para verificar el documento firmado
+function verifySignedDocument(documentContent, signatureDoc, publicKey) {
+    // Calcular el hash del contenido del documento
+    const documentHash = utils.calculateHash(documentContent, 'base64');
+    for (let signature of signatureDoc) {
+        if (utils.verifySignature(documentHash, signature, publicKey)) {
+            return true;  // Devuelve true y sale de la función en cuanto encuentre una coincidencia válida
+        }
+    }
+    return false;  // Si no se encuentra ninguna coincidencia válida, devuelve false
+}
+
 //Funcion para manejar el renderizado y carga de datos de la pantalla principal
 function principal(req, res){
     if(req.session.loggedin != true){
@@ -133,6 +145,7 @@ function firmar(req, res){
         res.redirect('/login');
     } else{
         delete req.session.message;
+        delete req.session.error;
         delete req.session.doc; //se eliminan datos usados provisionalmente
         res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
     } 
@@ -157,7 +170,7 @@ function uploadf(req, res){
                 req.session.users = users;
                 delete req.session.message;
                 delete req.session.error;
-                delete req.session.doc;
+                delete req.session.doc; //se eliminan datos usados provisionalmente
                 res.render('principal/subirminuta', {name: req.session.name, users: req.session.users , matricula: req.session.matricula, notifications: req.session.notifications, privateKey: req.session.privateKey});
             });
         });
@@ -206,6 +219,9 @@ function uploadmConfidential(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
                 req.session.users = users;
+                delete req.session.message;
+                delete req.session.error;
+                delete req.session.doc; //se eliminan datos usados provisionalmente
                 res.render('principal/subirmemoconf', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users, privateKey: req.session.privateKey});
             });
         });
@@ -427,19 +443,6 @@ async function uploadMemoConfidential(req, res) {
             res.status(500).json({ error: 'Error checking file existence' });
         }
     });
-}
-
-
-// Función para verificar el documento firmado
-function verifySignedDocument(documentContent, signatureDoc, publicKey) {
-    // Calcular el hash del contenido del documento
-    const documentHash = utils.calculateHash(documentContent, 'base64');
-    for (let signature of signatureDoc) {
-        if (utils.verifySignature(documentHash, signature, publicKey)) {
-            return true;  // Devuelve true y sale de la función en cuanto encuentre una coincidencia válida
-        }
-    }
-    return false;  // Si no se encuentra ninguna coincidencia válida, devuelve false
 }
 
 //Función llamada con POST desde la pantalla "SIGN DOCUMENT"
@@ -740,15 +743,23 @@ async function pruebafirm(req, res) {
         await Promise.all(verificarFirmas);
 
         if (firmasValidas) {
-            req.session.message = `Signatures for: ${nombreDocumento} verified. Document intact.`;
+            message = `Signatures for: ${nombreDocumento} verified. Document intact.`;
         } else {
             req.session.error = `*WARNING! Signatures for: ${nombreDocumento} incorrect. Document corrupted.`;
         }
         if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
             nombreDocumento = nombreOriginal;
         }
-        req.session.doc = nombreDocumento;
-        res.redirect('/verDocumentos');
+        //req.session.doc = nombreDocumento;
+        //res.redirect('/verDocumentos');
+        res.json({
+            success: true,
+            message: 'Datos recibidos correctamente',
+            data: {
+                nombreDocumento: nombreDocumento,
+                additionalInfo: 'Esta es información adicional de ejemplo'
+            }
+        });
     } catch (error) {
         console.error('Error en la función pruebafirm:', error);
         res.status(500).send('Error en la función pruebafirm');

@@ -1,5 +1,16 @@
-<div style="height: 180vh;">
-    <div class="container-fluid" style="padding: 10vh;">
+<div style="height: 200vh;">
+    <div class="container-fluid" style="padding: 5vh;">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4"> 
+                </div>
+                <div id="contenido" class="col-md-5 col-lg-5 col-xl-7 form-section d-flex flex-column">
+                    {{!-- <h1 class="titulo1" id="titulo1"><em>View Documents</em></h1><br> --}}
+                </div>
+                <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4"> 
+                </div>
+            </div>
+        </div>
         <div class="row" style="height: 160vh;">
             <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4" style="background-color: #f8f9fa; padding: 20px; border: 1px solid #ccc;">
                 <div class="d-flex flex-column align-items-start">
@@ -113,12 +124,19 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var contenido = document.getElementById('contenido');
+        contenido.innerHTML = '<h1 class="titulo1"><em>View Documents</em></h1><br>';
+    });
+    
     function cargarDocumento(element) {
         var nombreDocumento = element.textContent.trim(); // Obtener el nombre del documento
         var urlDocumento = obtenerURLDocumento(nombreDocumento); // Obtener la URL del documento según su nombre
         var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
         console.log("Cargando documento:", urlDocumento); // Log para verificar la URL generada
         document.getElementById('nombreArchivo').value = nombreDocumento;
+        var contenido = document.getElementById('contenido');
+        contenido.innerHTML = '<h1 class="titulo1"><em>'+nombreDocumento+'</em></h1><br>';
         var iframe = document.getElementById('documentoFrame');
         iframe.src = urlDocumento; // Cargar el documento en el iframe
         
@@ -165,7 +183,54 @@
         var urlDocumento = obtenerURLDocumento('temp_'+nombreDocumento); // Obtener la URL del documento según su nombre
         var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
         document.getElementById('nombreArchivo').value = 'temp_'+nombreDocumento;
+        var contenido = document.getElementById('contenido');
+        contenido.innerHTML = '<h1 class="titulo1"><em>'+nombreDocumento+'</em></h1><br>';
         var iframe = document.getElementById('documentoFrame');
+
+        iframe.src = urlDocumento; // Cargar el documento en el iframe
+        
+        // Verificar si el iframe carga correctamente el documento
+        iframe.onload = function() {
+            console.log("Documento cargado correctamente:", urlDocumento);
+        };
+        iframe.onerror = function() {
+            console.error("Error al cargar el documento:", urlDocumento);
+        };
+
+        actualizarFirmas(firmas);
+        mostrarOcultarElemento();
+    }
+
+    async function comprobarFirmas(element) {
+    var nombreDocumento = element.textContent.trim(); // Obtener el nombre del documento
+    
+        try {
+            let response = await fetch('/crearDocumento', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nombreDocumento: nombreDocumento })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error en la solicitud fetch: ' + response.statusText);
+            }
+
+            let data = await response.json();
+            //console.log('Datos recibidos:', data);
+            
+        } catch (error) {
+            console.error('Error:', error);
+        }
+        
+        var urlDocumento = obtenerURLDocumento('temp_'+nombreDocumento); // Obtener la URL del documento según su nombre
+        var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
+        document.getElementById('nombreArchivo').value = 'temp_'+nombreDocumento;
+        var contenido = document.getElementById('contenido');
+        contenido.innerHTML = '<h1 class="titulo1"><em>'+nombreDocumento+'</em></h1><br>';
+        var iframe = document.getElementById('documentoFrame');
+
         iframe.src = urlDocumento; // Cargar el documento en el iframe
         
         // Verificar si el iframe carga correctamente el documento
