@@ -18,7 +18,7 @@
                 <!-- Email input -->
                 <div data-mdb-input-init class="form-outline mb-4">
                   <input type="text" id="usuario" name="usuario" class="form-control form-control-lg"
-                    placeholder="Enter a valid email address or employee ID" required oninput="validarUser(this)"/>
+                    placeholder="Enter a valid email address or employee ID" maxlength="10" minlength="10" required oninput="validarUser(this)"/>
                   <label class="form-label" for="usuario">Email or employee ID</label><br>
                   <small id="usrError" class="text-danger"></small>
                 </div>
@@ -29,7 +29,7 @@
                 <!-- Password input -->
                 <div data-mdb-input-init class="form-outline mb-3">
                   <input type="password" id="contras" name="contras" class="form-control form-control-lg"
-                    placeholder="Enter password" required autocomplete="off"/>
+                    placeholder="Enter password" minlength="8" required autocomplete="off"/>
                   <label class="form-label" for="contras">Password</label>
                   {{#if error}}
                     <p class="small fw-bold mt-2 pt-1 mb-0" style="color: red">{{error}}</p>

@@ -190,10 +190,30 @@ input:valid {
   @keyframes fadeIn {
     from {
       opacity: 0;
+      transform: translateX(-60px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+}
+
+#titulo1 {
+    animation: fadeInX 1.5s ease-out;
+  }
+  
+  @keyframes fadeInX {
+    from {
+      opacity: 0;
       transform: translateY(-60px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
     }
+}
+
+.hide{
+    opacity: 0;
+    transition: opacity 0.5s ease-out;
 }

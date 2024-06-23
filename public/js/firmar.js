@@ -1,5 +1,7 @@
 function mostrarConfirmacion() {
     document.getElementById('mensajeConfirmacion').classList.remove('d-none');
+    var mensaje = document.getElementById('confcontra');
+    mensaje.scrollIntoView({ behavior: 'smooth' });
     return false;
 }
 

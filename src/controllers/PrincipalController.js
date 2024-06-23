@@ -116,8 +116,6 @@ function principal(req, res){
                 }
                 let notifications = utils.obtenerNotificaciones(results, req.session.matricula);
                 req.session.notifications = notifications;
-                delete req.session.message;
-                delete req.session.doc;
                 res.render('principal/index', {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
             });
         });
@@ -144,9 +142,6 @@ function firmar(req, res){
     if(req.session.loggedin != true){
         res.redirect('/login');
     } else{
-        delete req.session.message;
-        delete req.session.error;
-        delete req.session.doc; //se eliminan datos usados provisionalmente
         res.render('principal/firmar', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
     } 
 }
@@ -168,9 +163,6 @@ function uploadf(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
                 req.session.users = users;
-                delete req.session.message;
-                delete req.session.error;
-                delete req.session.doc; //se eliminan datos usados provisionalmente
                 res.render('principal/subirminuta', {name: req.session.name, users: req.session.users , matricula: req.session.matricula, notifications: req.session.notifications, privateKey: req.session.privateKey});
             });
         });
@@ -194,8 +186,6 @@ function uploadm(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
                 req.session.users = users;
-                delete req.session.message;
-                delete req.session.doc;
                 res.render('principal/subirmemo', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users, privateKey: req.session.privateKey});
             });
         });
@@ -219,9 +209,6 @@ function uploadmConfidential(req, res){
                     console.error('Error fetching users from the database:', err);
                 }
                 req.session.users = users;
-                delete req.session.message;
-                delete req.session.error;
-                delete req.session.doc; //se eliminan datos usados provisionalmente
                 res.render('principal/subirmemoconf', {name: req.session.name, matricula: req.session.matricula, notifications: req.session.notifications, users: req.session.users, privateKey: req.session.privateKey});
             });
         });
@@ -247,7 +234,7 @@ function verDocumentos(req, res){
                 const memorandos = results.filter(archivo => archivo.tipo === 'Memo');
                 const confidentialMemorandos = results.filter(archivo => archivo.tipo === 'Conf');
                 //const nombresArchivos = results.map(result => result.name);
-                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, confidentialMemorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, nombreArch: req.session.doc, privateKey: req.session.privateKey, error: req.session.error});
+                res.render('principal/verDocumentos', {name: req.session.name, minutas, memorandos, confidentialMemorandos, notifications: req.session.notifications, matricula: req.session.matricula, message: req.session.message, privateKey: req.session.privateKey});
             });
         });
     } 
@@ -527,13 +514,13 @@ function generatesignature(req, res){
                             else {
                                 filePathPriv = 'src/firmasCifradas/' + utils.removeExtension(data.nombreArchivoSeleccionado) + '.txt';
                                 
-                                conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [data.nombreArchivoSeleccionado, req.session.matricula], (err, res) => {
+                                conn.query('SELECT kdest FROM archivos WHERE name = ? AND recibe = ?', [data.nombreArchivoSeleccionado, req.session.matricula], (err, destino) => {
                                     if (err) {
                                         console.error("Error al ejecutar la consulta:", err);
                                         return;
                                     }
                             
-                                    const aesKeyC = res[0].kdest;
+                                    const aesKeyC = destino[0].kdest;
                                     const aesKey = utils.decryptAesKey(aesKeyC, privateKey);
                                     console.log('Llave de AES: '+aesKey);
 
@@ -546,7 +533,7 @@ function generatesignature(req, res){
                                         const encryptedData = ivBase64 + ',' + encryptedBase64;
                                         fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
                                         firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
-                                        actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {
+                                        actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => { //ERROR
                                             res.redirect('/principal');
                                         });
                                     } else {
@@ -566,13 +553,13 @@ function generatesignature(req, res){
                                             const encryptedBase64 = encrypted.toString('base64');
                                             const encryptedData = ivBase64 + ',' + encryptedBase64;
                                             fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
-                                            firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
-                                            actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {
-                                                res.redirect('/principal');
-                                            });
+                                            firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula); 
                                         } catch (error) {
                                             console.error("Error al descifrar los datos:", error);
                                         }
+                                        actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {//ERROR
+                                            res.redirect('/principal');
+                                        });
                                     }   
                                 });
                             }
@@ -583,7 +570,7 @@ function generatesignature(req, res){
                     });
 
                 } else {
-                    res.render('principal/firmar', {error: '* ERROR. Contraseña incorrecta.', name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
+                    res.render('principal/firmar', {error: '* ERROR. Incorrect Password. Try again', name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, privateKey: req.session.privateKey});
                 }
             } else {
                 console.log("No se encontraron datos para la matrícula especificada.");
@@ -619,9 +606,6 @@ function descargaclave(req, res){
 //Función que se manda a llamar desde la pantalla ver documentos para comprobar las firmas
 async function pruebafirm(req, res) {
     try {
-        delete req.session.message;
-        delete req.session.error;
-        delete req.session.doc;
         const nombreOriginal = req.body.nombreArchivo;
         let nombreDocumento;
         if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
@@ -760,8 +744,6 @@ async function pruebafirm(req, res) {
         if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
             nombreDocumento = nombreOriginal;
         }
-        //req.session.doc = nombreDocumento;
-        //res.redirect('/verDocumentos');
         res.json({
             success: true,
             message: 'respuesta correcta',

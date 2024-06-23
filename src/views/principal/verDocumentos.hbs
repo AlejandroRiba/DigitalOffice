@@ -5,7 +5,7 @@
                 <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4"> 
                 </div>
                 <div id="contenido" class="col-md-5 col-lg-5 col-xl-7 form-section d-flex flex-column">
-                    {{!-- <h1 class="titulo1" id="titulo1"><em>View Documents</em></h1><br> --}}
+                    
                 </div>
                 <div class="col-md-3 col-lg-3 col-xl-2 menu mx-4"> 
                 </div>
@@ -176,18 +176,35 @@
             let contenido = await response.json();
             let contenidoMns
             if(contenido.data.additionalInfo.dato1 === null || contenido.data.additionalInfo.dato1 === undefined){
-               contenidoMns = contenido.data.additionalInfo.dato2;
-               error.innerHTML = '<div id="customErr" class="alert alert-danger alert-dismissible fade show" role="alert">' +
-                                contenidoMns +
-                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                                '</div>';
-            }else{
-               contenidoMns = contenido.data.additionalInfo.dato1;
-               error.innerHTML = '<div id="customErr" class="alert alert-success alert-dismissible fade show" role="alert">' +
-                                contenidoMns +
-                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                                '</div>';
+                contenidoMns = contenido.data.additionalInfo.dato2;
+                alertType = 'alert-danger';
+            } else {
+                contenidoMns = contenido.data.additionalInfo.dato1;
+                alertType = 'alert-success';
             }
+
+            error.innerHTML = `
+                <br>
+                <div id="customErr" class="alert ${alertType} alert-dismissible fade show" role="alert">
+                    ${contenidoMns}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+
+            // Crear y agregar el script dinámicamente
+            const script = document.createElement('script');
+            script.textContent = `
+                setTimeout(function() {
+                    var alert = document.getElementById('customErr');
+                    if (alert) {
+                        alert.classList.add('hide');
+                        alert.addEventListener('transitionend', function() {
+                            alert.remove();
+                        }, { once: true });
+                    }
+                }, 6000);
+            `;
+            document.body.appendChild(script);
             
         } catch (error) {
             console.error('Error:', error);

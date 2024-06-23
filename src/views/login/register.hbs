@@ -6,7 +6,7 @@
                      class="img-fluid" alt="Sample image">
             </div>
             <div class="col-md-8 col-lg-6 col-xl-4 offset-xl-1">
-                <form method="POST" action="">
+                <form method="POST" action="" onsubmit="return validacion_regs()">
                     <div class="d-flex flex-row align-items-center justify-content-center justify-content-lg-start">
                         <p class="lead fw-normal mb-0 me-3">Create an account</p>
                     </div>
@@ -58,8 +58,9 @@
                     <!-- Password input -->
                     <div data-mdb-input-init class="form-outline mb-3">
                         <input type="password" id="contras" name="contras" class="form-control form-control-lg"
-                               placeholder="Enter password" required autocomplete="off"/>
-                        <label class="form-label" for="contras">Password</label>
+                               placeholder="Enter password" minlength="8" required oninput="validarContra(this)" autocomplete="off"/>
+                        <label class="form-label" for="contras">Password</label><br>
+                        <small id="psswordError" class="text-danger"></small>
                     </div>
 
                     <div class="text-center text-lg-start mt-4 pt-2">
