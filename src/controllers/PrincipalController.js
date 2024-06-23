@@ -311,7 +311,7 @@ function uploadMemo(req, res) {
                     if(req.session.loggedin != true){
                         res.redirect('/login');
                     } else{
-                        res.render('principal/subirmemo',  {name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey});
+                        res.render('principal/subirmemo',  {name: req.session.name, notifications: req.session.notifications, users: req.session.users, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey});
                     }
                 }
 
@@ -365,7 +365,7 @@ async function uploadMemoConfidential(req, res) {
                 if (req.session.loggedin !== true) {
                     return res.redirect('/login');
                 } else {
-                    return res.render('principal/subirmemoconf', { name: req.session.name, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey });
+                    return res.render('principal/subirmemoconf', { name: req.session.name, users: req.session.users, notifications: req.session.notifications, matricula: req.session.matricula, error: 'File already exists', privateKey: req.session.privateKey });
                 }
             }
 
