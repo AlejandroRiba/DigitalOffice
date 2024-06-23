@@ -674,14 +674,24 @@ async function pruebafirm(req, res) {
 
         // Verificar si al menos uno ha firmado, sino que no haga todo lo demás
         const hayFirmas = firmasArray.some(firma => firma.trim().split(':')[1].trim() === 'si');
-
+        let message;
+        let dataerror;
         if (!hayFirmas) {
-            req.session.message = `The necessary signatures have not yet been completed for: ${nombreDocumento}`;
+            message = `The necessary signatures have not yet been completed for: ${nombreDocumento}`;
             if ((nombreOriginal).startsWith('temp_')) { //para cuando generamos los archivos descifrados.
                 nombreDocumento = nombreOriginal; //originalmente estabamos viendo un archivo cifrado
             }
-            req.session.doc = nombreDocumento;
-            return res.redirect('/verDocumentos');
+            return res.json({
+                success: true,
+                message: 'recibido correctamente',
+                data: {
+                    nombreDocumento: nombreDocumento,
+                    additionalInfo: {
+                        dato1: message,
+                        dato2: dataerror
+                    }
+                }
+            });
         }
 
         let filePathPriv;
@@ -741,11 +751,11 @@ async function pruebafirm(req, res) {
         });
 
         await Promise.all(verificarFirmas);
-
+        
         if (firmasValidas) {
             message = `Signatures for: ${nombreDocumento} verified. Document intact.`;
         } else {
-            req.session.error = `*WARNING! Signatures for: ${nombreDocumento} incorrect. Document corrupted.`;
+            dataerror = `*WARNING! Signatures for: ${nombreDocumento} incorrect. Document corrupted.`;
         }
         if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
             nombreDocumento = nombreOriginal;
@@ -754,10 +764,13 @@ async function pruebafirm(req, res) {
         //res.redirect('/verDocumentos');
         res.json({
             success: true,
-            message: 'Datos recibidos correctamente',
+            message: 'respuesta correcta',
             data: {
                 nombreDocumento: nombreDocumento,
-                additionalInfo: 'Esta es información adicional de ejemplo'
+                additionalInfo: {
+                    dato1: message,
+                    dato2: dataerror
+                }
             }
         });
     } catch (error) {

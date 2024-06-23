@@ -61,62 +61,12 @@
                             <!-- Aquí se actualizarán las firmas pendientes -->
                         </ul>
                     </div>
-                    {{#if message}}
-                        <!-- Mostrar el error utilizando JavaScript -->
-                        <div id="customMess" class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{message}}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                        <form action="/veriFirma" method="POST">
-                            <input type="hidden" id="nombreArchivo" name="nombreArchivo" style="display: none;" value="{{nombreArch}}">
-                            <button class="btn btn-success btn-sm m-2"
-                                type="submit"
-                                id="botonVerf"
-                                role="button">Verify signatures</button>
-                        </form>
-                        <script>
-                            setTimeout(function() {
-                                var alert = document.getElementById('customMess');
-                                if (alert) {
-                                    alert.classList.add('hide');
-                                    alert.addEventListener('transitionend', function() {
-                                        alert.remove();
-                                    }, { once: true });
-                                }
-                            }, 4000);
+                    <div id="boton">
 
-                        </script>
-                    {{else}}
-                        <div style="align-items: center; padding: auto;">
-                            <form action="/veriFirma" method="POST">
-                                <input type="hidden" id="nombreArchivo" name="nombreArchivo" style="display: none;">
-                                <button class="btn btn-success btn-sm m-2"
-                                    type="submit"
-                                    id="botonVerf"
-                                    style="display: none;"
-                                    role="button">Verify signatures</button>
-                            </form>
-                        </div>
-                    {{/if}}
-                    {{#if error}}
-                        <!-- Mostrar el error utilizando JavaScript -->
-                        <div id="customErr" class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{error}}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                        <script>
-                            setTimeout(function() {
-                                var alert = document.getElementById('customErr');
-                                if (alert) {
-                                    alert.classList.add('hide');
-                                    alert.addEventListener('transitionend', function() {
-                                        alert.remove();
-                                    }, { once: true });
-                                }
-                            }, 4000);
+                    </div>
+                    <div id="alertas">
 
-                        </script>
-                    {{/if}}
+                    </div>
                 </div>
             </div>
         </div>
@@ -134,9 +84,12 @@
         var urlDocumento = obtenerURLDocumento(nombreDocumento); // Obtener la URL del documento según su nombre
         var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
         console.log("Cargando documento:", urlDocumento); // Log para verificar la URL generada
-        document.getElementById('nombreArchivo').value = nombreDocumento;
         var contenido = document.getElementById('contenido');
         contenido.innerHTML = '<h1 class="titulo1"><em>'+nombreDocumento+'</em></h1><br>';
+        var boton = document.getElementById('boton');
+        boton.innerHTML = '<button class="btn btn-success btn-sm m-2" ' +
+                          'onclick="comprobarFirmas(this)" ' +
+                          'id="botonVerf" data-doc="'+nombreDocumento+'">Verify signatures</button>';
         var iframe = document.getElementById('documentoFrame');
         iframe.src = urlDocumento; // Cargar el documento en el iframe
         
@@ -174,18 +127,20 @@
             }
 
             let data = await response.json();
-            //console.log('Datos recibidos:', data);
             
         } catch (error) {
             console.error('Error:', error);
         }
-        
         var urlDocumento = obtenerURLDocumento('temp_'+nombreDocumento); // Obtener la URL del documento según su nombre
         var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
-        document.getElementById('nombreArchivo').value = 'temp_'+nombreDocumento;
         var contenido = document.getElementById('contenido');
         contenido.innerHTML = '<h1 class="titulo1"><em>'+nombreDocumento+'</em></h1><br>';
+        var boton = document.getElementById('boton');
+        boton.innerHTML = '<button class="btn btn-success btn-sm m-2" ' +
+                          'onclick="comprobarFirmas(this)" ' +
+                          'id="botonVerf" data-doc="'+nombreDocumento+'">Verify signatures</button>';
         var iframe = document.getElementById('documentoFrame');
+        
 
         iframe.src = urlDocumento; // Cargar el documento en el iframe
         
@@ -202,47 +157,41 @@
     }
 
     async function comprobarFirmas(element) {
-    var nombreDocumento = element.textContent.trim(); // Obtener el nombre del documento
+        var nombreDocumento = element.getAttribute('data-doc');
     
         try {
-            let response = await fetch('/crearDocumento', {
+            let response = await fetch('/veriFirma', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ nombreDocumento: nombreDocumento })
+                body: JSON.stringify({ nombreArchivo: nombreDocumento })
             });
 
             if (!response.ok) {
                 throw new Error('Error en la solicitud fetch: ' + response.statusText);
             }
 
-            let data = await response.json();
-            //console.log('Datos recibidos:', data);
+            var error = document.getElementById('alertas');
+            let contenido = await response.json();
+            let contenidoMns
+            if(contenido.data.additionalInfo.dato1 === null || contenido.data.additionalInfo.dato1 === undefined){
+               contenidoMns = contenido.data.additionalInfo.dato2;
+               error.innerHTML = '<div id="customErr" class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                                contenidoMns +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                                '</div>';
+            }else{
+               contenidoMns = contenido.data.additionalInfo.dato1;
+               error.innerHTML = '<div id="customErr" class="alert alert-success alert-dismissible fade show" role="alert">' +
+                                contenidoMns +
+                                '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                                '</div>';
+            }
             
         } catch (error) {
             console.error('Error:', error);
         }
-        
-        var urlDocumento = obtenerURLDocumento('temp_'+nombreDocumento); // Obtener la URL del documento según su nombre
-        var firmas = element.getAttribute('data-firmas'); //recibimiento de las firmas
-        document.getElementById('nombreArchivo').value = 'temp_'+nombreDocumento;
-        var contenido = document.getElementById('contenido');
-        contenido.innerHTML = '<h1 class="titulo1"><em>'+nombreDocumento+'</em></h1><br>';
-        var iframe = document.getElementById('documentoFrame');
-
-        iframe.src = urlDocumento; // Cargar el documento en el iframe
-        
-        // Verificar si el iframe carga correctamente el documento
-        iframe.onload = function() {
-            console.log("Documento cargado correctamente:", urlDocumento);
-        };
-        iframe.onerror = function() {
-            console.error("Error al cargar el documento:", urlDocumento);
-        };
-
-        actualizarFirmas(firmas);
-        mostrarOcultarElemento();
     }
 
 
