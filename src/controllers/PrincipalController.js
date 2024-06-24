@@ -372,6 +372,7 @@ async function uploadMemoConfidential(req, res) {
             const data = req.body;
             const receives = data.users;
             const aesKey = crypto.randomBytes(32); //Clave de AES 256 bits
+            console.log('\n\n - - - - - - CIFRADO DE DOCUMENTO - - - - - -');
             console.log("AES key Generada: " + aesKey.toString('base64'));
 
             // Cifrar el archivo con la clave AES
@@ -380,7 +381,7 @@ async function uploadMemoConfidential(req, res) {
             const encryptedBase64 = encrypted.toString('base64');
 
             const encryptedData = ivBase64 + ',' + encryptedBase64;
-
+            console.log('- - - - - - -------------------------- - - - - - - \n\n');
             // Guardar el archivo cifrado
             await fs.promises.writeFile(filePath, encryptedData);
 
@@ -481,7 +482,8 @@ function generatesignature(req, res){
 
                     const documentHash = utils.calculateHash(dataDocument, 'base64');
                     const signature = utils.signDocument(documentHash, privateKey);
-
+                    console.log('\n\n - - - - - - PROCESO DE FIRMA DE DOCUMENTO - - - - - -');
+                    console.log('Firma al documento'+ data.nombreArchivoSeleccionado +': ' + signature);
                     const query = 'SELECT firmas FROM archivos WHERE name = ?';
                     const name = [data.nombreArchivoSeleccionado];
 
@@ -522,7 +524,6 @@ function generatesignature(req, res){
                             
                                     const aesKeyC = destino[0].kdest;
                                     const aesKey = utils.decryptAesKey(aesKeyC, privateKey);
-                                    console.log('Llave de AES: '+aesKey);
 
                                     if (!checkIfFileExists(filePathPriv)) {
                                         signedDocument = `-SIGNATURE-${signature}`;
@@ -531,8 +532,10 @@ function generatesignature(req, res){
                                         const ivBase64 = iv.toString('base64');
                                         const encryptedBase64 = encrypted.toString('base64');
                                         const encryptedData = ivBase64 + ',' + encryptedBase64;
+                                        console.log('Firma cifrada : ' + encryptedData);
                                         fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
                                         firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
+                                        console.log('- - - - - - -------------------------- - - - - - - \n\n');
                                         actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => { //ERROR
                                             res.redirect('/principal');
                                         });
@@ -545,18 +548,21 @@ function generatesignature(req, res){
                                         try {
                                             const decryptedBuffer = utils.decryptFile(ivBuffer, encryptedBuffer, aesKey);
                                             const decryptedData = decryptedBuffer.toString('utf8');
-                                            console.log("Decryted data: " + decryptedData);
+                                            console.log("Firmas que ya estaban: " + decryptedData);
                                             signedDocument = `${decryptedData}-SIGNATURE-${signature}`;
+                                            console.log('Firma(s) antes del cifrado: ' + decryptedData);
                                             const signedBuffer = Buffer.from(signedDocument, 'utf8');
                                             const {iv, encrypted} = utils.encryptFile(signedBuffer, Buffer.from(aesKey,'base64'));
                                             const ivBase64 = iv.toString('base64');
                                             const encryptedBase64 = encrypted.toString('base64');
                                             const encryptedData = ivBase64 + ',' + encryptedBase64;
+                                            console.log('Firma(s) cifrada : ' + encryptedData);
                                             fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
                                             firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula); 
                                         } catch (error) {
                                             console.error("Error al descifrar los datos:", error);
                                         }
+                                        console.log('- - - - - - -------------------------- - - - - - - \n\n');
                                         actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {//ERROR
                                             res.redirect('/principal');
                                         });

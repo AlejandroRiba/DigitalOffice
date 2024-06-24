@@ -32,11 +32,16 @@ class Utils {
         const usr = this.calculateHash(usuario, 'hex');
         const pss = this.calculateHash(password,'hex');
         const iv = crypto.randomBytes(16);
+        console.log('\n\n - - - - - - PROCESO PARA PROTEGER LA CLAVE PRIVADA DEL USUARIO - - - - - -');
+        console.log('IV para protección de private key: ' + iv.toString('base64'));
         const key = XOR_hex(usr,pss);
+        console.log('Clave para cifrar la private key: ' + key.toString('base64'));
         const final = this.removePemHeaders(privateKey);
         const keyBuffer = Buffer.from(key, 'hex');
         const encryptedText = encrypt(final, keyBuffer, iv);
+        console.log('Private key cifrada: ' + encryptedText);
         const privtofile = iv.toString('base64') + encryptedText;
+        console.log('- - - - - - -------------------------- - - - - - - \n\n');
         return privtofile;
     }
     
@@ -49,10 +54,16 @@ class Utils {
             pss = password;
         }
         const key = XOR_hex(usr,pss);
+        console.log('\n\n - - - - - - PROCESO PARA DESCIFRAR LA CLAVE PRIVADA DEL USUARIO - - - - - -');
+        console.log('Clave para descifrar la private key: ' + key.toString('base64'));
         const keyBuffer = Buffer.from(key, 'hex');
         const [iv, textoc] = splitString(privateKey.toString());
+        console.log('Private key antes de descifrar: ' + textoc);
+        console.log('Iv para descifrar la private key: ' + iv.toString('base64'));
         const ivbuff = Buffer.from(iv, 'base64');
         const descifrado = decrypt(textoc, keyBuffer, ivbuff);
+        console.log('Private key descifrada: ' + this.addPemHeaders(descifrado, 'PRIVATE'));
+        console.log('- - - - - - -------------------------- - - - - - - \n\n');
         return this.addPemHeaders(descifrado, 'PRIVATE');
     }
 
@@ -151,6 +162,8 @@ class Utils {
 
     encryptWithPublicKey(publicKey, aesKey) {
         const buffer = Buffer.from(aesKey, 'utf8');
+        console.log('\n\n - - - - - - CIFRADO CON CLAVE PÚBLICA - - - - - -');
+        console.log('Clave de AES para cifrar archivo subido :' + aesKey.toString('base64'));
         const encryptedKey = crypto.publicEncrypt(
           {
             key: publicKey,
@@ -160,6 +173,8 @@ class Utils {
           },
           buffer
         );
+        console.log('Clave de AES "oculta" para cifrar archivo subido :' + encryptedKey.toString('base64'));
+        console.log('- - - - - - -------------------------- - - - - - - \n\n');
         return encryptedKey.toString('base64');
     }
 
@@ -172,8 +187,7 @@ class Utils {
                     if (!result.length) return reject(new Error('No se encontró el registro'));
     
                     const publicKeyDest = result[0].firma;
-                    console.log(publicKeyDest); // Debe ser en formato PEM o DER
-    
+                    console.log('*** Clave para que pueda descifrar: ' + receive);
                     try {
                         const encryptedKey = this.encryptWithPublicKey(publicKeyDest, key);
                         resolve(encryptedKey);
@@ -187,6 +201,8 @@ class Utils {
     
     decryptAesKey(encryptedAesKey, privateKey) {
         try {
+          console.log('\n\n - - - - - - DESCIFRADO CON CLAVE PRIVADA - - - - - -');
+          console.log('Clave de AES "oculta" para cifrar archivo subido :' + encryptedAesKey.toString('base64'));
           const buffer = Buffer.from(encryptedAesKey, 'base64');
           const decryptedKey = crypto.privateDecrypt(
             {
@@ -196,6 +212,8 @@ class Utils {
             },
             buffer
           );
+          console.log('Clave de AES para cifrar archivo subido :' + decryptedKey.toString('base64'));
+          console.log('- - - - - - -------------------------- - - - - - - \n\n');
           return decryptedKey.toString('base64');
         } catch (error) {
           console.error('Fallo en el descifrado:', error);

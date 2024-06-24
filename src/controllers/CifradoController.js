@@ -5,9 +5,9 @@ const utils = new Utils();
 
 function crearDocumento(req, res) {
     const { nombreDocumento } = req.body;
+    console.log('\n\n - - - - - - DESCIFRADO DE UN ARCHIVO - - - - - -');
     console.log('Nombre del Documento:', nombreDocumento);
     const tempFileName = 'temp_' + nombreDocumento;
-    console.log('Nombre del Documento:', tempFileName);
     const filePathPriv = 'src/cifrados/' + nombreDocumento;
     const filePath = 'src/archivos/' + tempFileName;
     try {
@@ -25,10 +25,10 @@ function crearDocumento(req, res) {
                     }
                     const consulta = datos[0];
                     const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password);
-                    // console.log("Matricula: " + req.session.matricula);
-                    // console.log("Session PrivateKey: ", req.session.privateKey);
-                    // console.log("Private key: " + privateKey);
-                    // console.log("AES key: " + aesKeyC)
+                     console.log("Matricula: " + req.session.matricula);
+                     console.log("Session PrivateKey: ", req.session.privateKey);
+                     console.log("Private key descifrada: " + privateKey);
+                     console.log("AES key descifrada: " + aesKeyC)
                     const aesKey = utils.decryptAesKey(aesKeyC, privateKey);
                     const documento = fs.readFileSync(filePathPriv, 'utf8');
                     const signData = documento.toString('utf8')
@@ -38,7 +38,7 @@ function crearDocumento(req, res) {
                     const decryptedBuffer = utils.decryptFile(ivBuffer, encryptedBuffer, aesKey);
                     const decryptedData = decryptedBuffer;
                     fs.writeFileSync(filePath, decryptedData);
-                    
+                    console.log('- - - - - - -------------------------- - - - - - - \n\n');
                 }); 
             });
         });
