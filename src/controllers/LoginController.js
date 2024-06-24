@@ -168,6 +168,7 @@ function logout(req, res){
             }                    
         });
     });
+    console.log('CERRAR SESIÓN ------- BYE BYE');
     if(req.session.loggedin == true){
         req.session.destroy();
     }
