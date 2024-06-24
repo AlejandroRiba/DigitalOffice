@@ -68,7 +68,7 @@ function auth(req, res){
                                     req.session.name = user.nombre;
                                     req.session.matricula = user.matricula;
                                     req.session.privateKey = filedata; //tenemos la private key cifrada, no la guardamos en plano
-                                    
+                                    console.log('INICIO DE SESIÓN ------- WELCOME');
                                     res.redirect('/principal');
                                 }else{
                                     res.render('login/index', {error: '* ERROR. This is not your key.'});
@@ -133,6 +133,7 @@ function storeUser(req, res) {
                     req.session.matricula = userData.matricula;
                     req.session.protectKey = privtofile;
                     req.session.privateKey = privtofile;
+                    console.log('INICIO DE SESIÓN ------- WELCOME');
                     res.redirect('/alerta');
                 });
             }
