@@ -41,7 +41,7 @@ class Utils {
         const encryptedText = encrypt(final, keyBuffer, iv);
         console.log('Private key cifrada: ' + encryptedText);
         const privtofile = iv.toString('base64') + encryptedText;
-        console.log('- - - - - - -------------------------- - - - - - - \n\n');
+        console.log('- - - - - - FIN DE PROCESO PROTECCIÓN DE CLAVE PRIVADA - - - - - - \n\n');
         return privtofile;
     }
     
@@ -63,7 +63,7 @@ class Utils {
         const ivbuff = Buffer.from(iv, 'base64');
         const descifrado = decrypt(textoc, keyBuffer, ivbuff);
         console.log('Private key descifrada: ' + this.addPemHeaders(descifrado, 'PRIVATE'));
-        console.log('- - - - - - -------------------------- - - - - - - \n\n');
+        console.log('- - - - - - FIN DE PROCESO DE DESCIFRADO DE CLAVE PRIVADA - - - - - - \n\n');
         return this.addPemHeaders(descifrado, 'PRIVATE');
     }
 
@@ -174,7 +174,7 @@ class Utils {
           buffer
         );
         console.log('Clave de AES "oculta" para cifrar archivo subido: ' + encryptedKey.toString('base64'));
-        console.log('- - - - - - -------------------------- - - - - - - \n\n');
+        console.log('- - - - - - FIN DE CIFRADO CON CLAVE PÚBLICA - - - - - - \n\n');
         return encryptedKey.toString('base64');
     }
 
@@ -213,7 +213,7 @@ class Utils {
             buffer
           );
           console.log('Clave de AES para cifrar archivo subido: ' + decryptedKey.toString('base64'));
-          console.log('- - - - - - -------------------------- - - - - - - \n\n');
+          console.log('- - - - - - FIN DEL DESCIFRADO CON CLAVE PRIVADA - - - - - - \n\n');
           return decryptedKey.toString('base64');
         } catch (error) {
           console.error('Fallo en el descifrado:', error);

@@ -514,7 +514,7 @@ function generatesignature(req, res){
                                 fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
                                 //success
                                 firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
-                                console.log('- - - - - - -------------------------- - - - - - - \n\n');
+                                console.log('- - - - - - FIN DE PROCESO DE FIRMA - - - - - - \n\n');
                                 actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {
                                     res.redirect('/principal');
                                 });
@@ -541,7 +541,7 @@ function generatesignature(req, res){
                                         console.log('Firma cifrada: ' + encryptedData);
                                         fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
                                         firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
-                                        console.log('- - - - - - -------------------------- - - - - - - \n\n');
+                                        console.log('- - - - - - FIN DE PROCESO DE FIRMA - - - - - - \n\n');
                                         actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => { //ERROR
                                             res.redirect('/principal');
                                         });
@@ -568,7 +568,7 @@ function generatesignature(req, res){
                                         } catch (error) {
                                             console.error("Error al descifrar los datos:", error);
                                         }
-                                        console.log('- - - - - - -------------------------- - - - - - - \n\n');
+                                        console.log('- - - - - - FIN DE PROCESO DE FIRMA - - - - - - \n\n');
                                         actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {//ERROR
                                             res.redirect('/principal');
                                         });
@@ -675,7 +675,7 @@ async function pruebafirm(req, res) {
         let dataerror;
         if (!hayFirmas) {
             console.log('Aún no se ha firmado el documento por ningún usuario.');
-            console.log('- - - - - - -------------------------- - - - - - - \n\n');
+            console.log('- - - - - - FIN DE PROCESO DE VERIFICACIÓN DE FIRMA - - - - - - \n\n');
             message = `The necessary signatures have not yet been completed for: ${nombreDocumento}`;
             if ((nombreOriginal).startsWith('temp_')) { //para cuando generamos los archivos descifrados.
                 nombreDocumento = nombreOriginal; //originalmente estabamos viendo un archivo cifrado
@@ -760,7 +760,7 @@ async function pruebafirm(req, res) {
         if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
             nombreDocumento = nombreOriginal;
         }
-        console.log('- - - - - - -------------------------- - - - - - - \n\n');
+        console.log('- - - - - - FIN DE PROCESO DE VERIFICACIÓN DE FIRMA - - - - - - \n\n');
         res.json({
             success: true,
             message: 'respuesta correcta',

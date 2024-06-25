@@ -35,7 +35,7 @@ function crearDocumento(req, res) {
                     const decryptedBuffer = utils.decryptFile(ivBuffer, encryptedBuffer, aesKey);
                     const decryptedData = decryptedBuffer;
                     fs.writeFileSync(filePath, decryptedData);
-                    console.log('- - - - - - -------------------------- - - - - - - \n\n');
+                    console.log('- - - - - - FIN DE PROCESO DE DESCIFRADO DE DOCUMENTO - - - - - - \n\n');
                 }); 
             });
         });
