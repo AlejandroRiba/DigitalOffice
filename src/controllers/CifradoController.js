@@ -26,9 +26,6 @@ function crearDocumento(req, res) {
                     const consulta = datos[0];
                     const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, consulta.password);
                      console.log("Matricula: " + req.session.matricula);
-                     console.log("Session PrivateKey: ", req.session.privateKey);
-                     console.log("Private key descifrada: " + privateKey);
-                     console.log("AES key descifrada: " + aesKeyC)
                     const aesKey = utils.decryptAesKey(aesKeyC, privateKey);
                     const documento = fs.readFileSync(filePathPriv, 'utf8');
                     const signData = documento.toString('utf8')

@@ -87,11 +87,15 @@ function actualizarBaseNotificaciones(req, res, firmas, archivo, callback){
 function verifySignedDocument(documentContent, signatureDoc, publicKey) {
     // Calcular el hash del contenido del documento
     const documentHash = utils.calculateHash(documentContent, 'base64');
+    console.log('Hash del documento: '+ documentHash);
+    console.log('Busca coincidencias de firmas...');
     for (let signature of signatureDoc) {
         if (utils.verifySignature(documentHash, signature, publicKey)) {
+            console.log('Firma verificada. <3 ');
             return true;  // Devuelve true y sale de la función en cuanto encuentre una coincidencia válida
         }
     }
+    console.log('No existe firma coincidente. </3 ');
     return false;  // Si no se encuentra ninguna coincidencia válida, devuelve false
 }
 
@@ -373,6 +377,7 @@ async function uploadMemoConfidential(req, res) {
             const receives = data.users;
             const aesKey = crypto.randomBytes(32); //Clave de AES 256 bits
             console.log('\n\n - - - - - - CIFRADO DE DOCUMENTO - - - - - -');
+            console.log('Documento: ' + req.file.originalname);
             console.log("AES key Generada: " + aesKey.toString('base64'));
 
             // Cifrar el archivo con la clave AES
@@ -456,6 +461,7 @@ function generatesignature(req, res){
             if (datos.length > 0) {
                 const consulta = datos[0];
                 if (utils.comparePasswords(data.confcontra, consulta.password)) {
+                    console.log('\n\n - - - - - - PROCESO DE FIRMA DE DOCUMENTO - - - - - -');
                     const privateKey = utils.obtenerprivkey(req.session.privateKey, req.session.matricula, data.confcontra, true);
 
                     // Definir dos posibles rutas de archivo
@@ -479,10 +485,9 @@ function generatesignature(req, res){
                             return res.status(404).send('Archivo no encontrado en ninguna ubicación');
                         }
                     }
-
                     const documentHash = utils.calculateHash(dataDocument, 'base64');
                     const signature = utils.signDocument(documentHash, privateKey);
-                    console.log('\n\n - - - - - - PROCESO DE FIRMA DE DOCUMENTO - - - - - -');
+                    console.log('Hash del documento: ' + documentHash);
                     console.log('Firma al documento '+ data.nombreArchivoSeleccionado +': ' + signature);
                     const query = 'SELECT firmas FROM archivos WHERE name = ?';
                     const name = [data.nombreArchivoSeleccionado];
@@ -509,6 +514,7 @@ function generatesignature(req, res){
                                 fs.writeFileSync(filePathPriv, signedDocument, 'utf8');
                                 //success
                                 firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
+                                console.log('- - - - - - -------------------------- - - - - - - \n\n');
                                 actualizarBaseNotificaciones(req, res, firmas, data.nombreArchivoSeleccionado, () => {
                                     res.redirect('/principal');
                                 });
@@ -612,6 +618,7 @@ function descargaclave(req, res){
 //Función que se manda a llamar desde la pantalla ver documentos para comprobar las firmas
 async function pruebafirm(req, res) {
     try {
+        console.log('\n\n - - - - - - PROCESO DE VERIFICACIÓN DE FIRMAS - - - - - -');
         const nombreOriginal = req.body.nombreArchivo;
         let nombreDocumento;
         if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
@@ -667,6 +674,8 @@ async function pruebafirm(req, res) {
         let message;
         let dataerror;
         if (!hayFirmas) {
+            console.log('Aún no se ha firmado el documento por ningún usuario.');
+            console.log('- - - - - - -------------------------- - - - - - - \n\n');
             message = `The necessary signatures have not yet been completed for: ${nombreDocumento}`;
             if ((nombreOriginal).startsWith('temp_')) { //para cuando generamos los archivos descifrados.
                 nombreDocumento = nombreOriginal; //originalmente estabamos viendo un archivo cifrado
@@ -700,7 +709,7 @@ async function pruebafirm(req, res) {
                 });
             });
 
-            console.log('SE OBTIENEN LOS DATOS DEL USUARIO DE LA SESION');
+            //console.log('SE OBTIENEN LOS DATOS DEL USUARIO DE LA SESION');
             const res = await new Promise((resolve, reject) => {
                 conn.query('SELECT * FROM archivos WHERE recibe = ? AND name = ?', [req.session.matricula, nombreDocumento], (err, res) => {
                     if (err) reject(err);
@@ -734,6 +743,7 @@ async function pruebafirm(req, res) {
                     });
                 });
                 const publicKey = consulta.firma;
+                console.log('Clave pública del usuario ' + matricula +' : ' + publicKey);
                 if (!verifySignedDocument(dataDocument, dataFirmasArray, publicKey)) {
                     firmasValidas = false;
                 }
@@ -750,6 +760,7 @@ async function pruebafirm(req, res) {
         if (nombreOriginal.startsWith('temp_')) { //para cuando generamos los archivos descifrados.
             nombreDocumento = nombreOriginal;
         }
+        console.log('- - - - - - -------------------------- - - - - - - \n\n');
         res.json({
             success: true,
             message: 'respuesta correcta',
