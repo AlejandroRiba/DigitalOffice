@@ -6,6 +6,7 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
+const handlebars = require('handlebars');
 
 const loginRoutes = require('./routes/login');
 const princRoutes = require('./routes/principal');
@@ -13,6 +14,10 @@ const crifRoutes = require('./routes/cifrado');
 
 const app = express();
 app.set('port', 4000);
+
+handlebars.registerHelper('encodeURIComponent', function(str) {
+    return encodeURIComponent(str);
+  });
 
 // Directorio donde se guardarán los archivos subidos
 const uploadDir = path.join(__dirname, '/archivos');

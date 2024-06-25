@@ -28,10 +28,10 @@
               {{#if name}}
                 <li class="notification-icon">
                     {{#if notifications.length}}
-                        <a href="#"><i class="fas fa-bell"></i></a><span style="color: rgb(255, 38, 0); margin-bottom:12px; font-size:34px">•</span>
+                        <a href="/firmar"><i class="fas fa-bell"></i></a><span style="color: rgb(255, 38, 0); margin-bottom:12px; font-size:34px">•</span>
                         <div class="notification-content">
                             {{#each notifications}}
-                                <a href="/firmar">URGENT! Your signature is required on {{this.name}} uploaded by {{this.matricula}}.</a>
+                                <a href="/firmar?dato={{encodeURIComponent this.name}}">URGENT! Your signature is required on {{this.name}} uploaded by {{this.matricula}}.</a>
                             {{/each}}
                         </div>
                     {{else}}
