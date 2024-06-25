@@ -56,7 +56,7 @@ function actualizarNotificaciones(req, res, callback){
             return res.status(500).send('Database connection error');
         }
         //aquí habría que hacer una de las comprobaciones de si ya firmó
-        conn.query('SELECT name,envia,firmas FROM archivos WHERE recibe != ?',[req.session.matricula], (err, results) => {
+        conn.query('SELECT DISTINCT name,envia,firmas FROM archivos WHERE recibe != ?',[req.session.matricula], (err, results) => {
             if (err) {
                 console.error('Error fetching users from the database:', err);
             }
@@ -110,7 +110,7 @@ function principal(req, res){
                 return res.status(500).send('Database connection error');
             }
             //aquí habría que hacer una de las comprobaciones de si ya firmó
-            conn.query('SELECT name,envia,firmas FROM archivos WHERE recibe != ?',[req.session.matricula], (err, results) => {
+            conn.query('SELECT DISTINCT name,envia,firmas FROM archivos WHERE recibe != ?',[req.session.matricula], (err, results) => {
                 if (err) {
                     console.error('Error fetching users from the database:', err);
                 }
@@ -483,7 +483,7 @@ function generatesignature(req, res){
                     const documentHash = utils.calculateHash(dataDocument, 'base64');
                     const signature = utils.signDocument(documentHash, privateKey);
                     console.log('\n\n - - - - - - PROCESO DE FIRMA DE DOCUMENTO - - - - - -');
-                    console.log('Firma al documento'+ data.nombreArchivoSeleccionado +': ' + signature);
+                    console.log('Firma al documento '+ data.nombreArchivoSeleccionado +': ' + signature);
                     const query = 'SELECT firmas FROM archivos WHERE name = ?';
                     const name = [data.nombreArchivoSeleccionado];
 
@@ -532,7 +532,7 @@ function generatesignature(req, res){
                                         const ivBase64 = iv.toString('base64');
                                         const encryptedBase64 = encrypted.toString('base64');
                                         const encryptedData = ivBase64 + ',' + encryptedBase64;
-                                        console.log('Firma cifrada : ' + encryptedData);
+                                        console.log('Firma cifrada: ' + encryptedData);
                                         fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
                                         firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula);
                                         console.log('- - - - - - -------------------------- - - - - - - \n\n');
@@ -556,7 +556,7 @@ function generatesignature(req, res){
                                             const ivBase64 = iv.toString('base64');
                                             const encryptedBase64 = encrypted.toString('base64');
                                             const encryptedData = ivBase64 + ',' + encryptedBase64;
-                                            console.log('Firma(s) cifrada : ' + encryptedData);
+                                            console.log('Firma(s) cifrada: ' + encryptedData);
                                             fs.writeFileSync(filePathPriv, encryptedData, 'utf8');
                                             firmas = utils.cambiarEstadoMatricula(firmas, req.session.matricula); 
                                         } catch (error) {

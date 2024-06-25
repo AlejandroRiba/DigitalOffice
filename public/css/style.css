@@ -177,6 +177,8 @@ input:valid {
 .documento-item {
     cursor: pointer;
     transition: background-color 0.3s ease;
+    overflow-wrap: break-word; /* O overflow-wrap: break-word; */
+    width: 150px;
 }
 
 .documento-item:hover {

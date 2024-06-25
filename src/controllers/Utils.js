@@ -162,8 +162,8 @@ class Utils {
 
     encryptWithPublicKey(publicKey, aesKey) {
         const buffer = Buffer.from(aesKey, 'utf8');
-        console.log('\n\n - - - - - - CIFRADO CON CLAVE PÚBLICA - - - - - -');
-        console.log('Clave de AES para cifrar archivo subido :' + aesKey.toString('base64'));
+        console.log(' - - - - - - CIFRADO CON CLAVE PÚBLICA - - - - - -');
+        console.log('Clave de AES para cifrar archivo subido: ' + aesKey.toString('base64'));
         const encryptedKey = crypto.publicEncrypt(
           {
             key: publicKey,
@@ -173,7 +173,7 @@ class Utils {
           },
           buffer
         );
-        console.log('Clave de AES "oculta" para cifrar archivo subido :' + encryptedKey.toString('base64'));
+        console.log('Clave de AES "oculta" para cifrar archivo subido: ' + encryptedKey.toString('base64'));
         console.log('- - - - - - -------------------------- - - - - - - \n\n');
         return encryptedKey.toString('base64');
     }
@@ -202,7 +202,7 @@ class Utils {
     decryptAesKey(encryptedAesKey, privateKey) {
         try {
           console.log('\n\n - - - - - - DESCIFRADO CON CLAVE PRIVADA - - - - - -');
-          console.log('Clave de AES "oculta" para cifrar archivo subido :' + encryptedAesKey.toString('base64'));
+          console.log('Clave de AES "oculta" para cifrar archivo subido: ' + encryptedAesKey.toString('base64'));
           const buffer = Buffer.from(encryptedAesKey, 'base64');
           const decryptedKey = crypto.privateDecrypt(
             {
@@ -212,7 +212,7 @@ class Utils {
             },
             buffer
           );
-          console.log('Clave de AES para cifrar archivo subido :' + decryptedKey.toString('base64'));
+          console.log('Clave de AES para cifrar archivo subido: ' + decryptedKey.toString('base64'));
           console.log('- - - - - - -------------------------- - - - - - - \n\n');
           return decryptedKey.toString('base64');
         } catch (error) {
